@@ -5,7 +5,7 @@
 - [x] 1.1 Define `GroundTruth` label dataclass (protocol, parameters, payload, injected_faults, seed) + generator base returning `(Capture, GroundTruth)`
 - [x] 1.2 UART generator: arbitrary baud, 8N1 + parameterized frames, SBUS (100000-8E2); test asserting frame timing against baud ground truth
 - [x] 1.3 I²C generator: start/stop conditions, addresses, ACK/NAK; test asserting SDA-transitions-while-SCL-high only at start/stop
-- [ ] 1.4 SPI generator: all four CPOL/CPHA modes, CS framing; per-mode timing tests
+- [x] 1.4 SPI generator: all four CPOL/CPHA modes, CS framing; per-mode timing tests
 - [ ] 1.5 WS2812 generator: spec-exact 800 kHz cells at 24 MS/s; test asserting ±150 ns windows honored
 - [ ] 1.6 PWM/servo and DShot generators with ground-truth pulse widths / frame values
 - [ ] 1.7 Jitter + glitch/runt + WS2812-violation injection, faults recorded in labels; seeded-reproducibility test (same seed -> bit-identical)

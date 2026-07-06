@@ -151,3 +151,49 @@ class SimpleI2CGenerator(Generator):
         )
 
         return capture, ground_truth
+
+
+class SimpleSPIGenerator(Generator):
+    """Simple SPI generator for testing purposes - covers all 4 CPOL/CPHA modes."""
+
+    def __init__(
+        self,
+        cpol: int = 0,
+        cpha: int = 0,
+        payload: list[int] | None = None,
+        seed: int = 0,
+    ):
+        super().__init__(seed)
+        self.cpol = cpol
+        self.cpha = cpha
+        self.payload = payload or [0x55]
+
+    def generate(self) -> tuple[Capture, GroundTruth]:
+        """Generate a simple SPI capture with ground truth.
+
+        Returns:
+            Tuple of (Capture, GroundTruth)
+        """
+        SAMPLE_RATE = 24_000_000
+        channel_data = np.array([1, 0, 0], dtype=bool)  # Minimal signal data
+
+        # Create the capture with proper format expected by Slidko system
+        capture = Capture(
+            channels={"ch0": channel_data},
+            samplerate_hz=SAMPLE_RATE,
+            provenance={"instrument": "synthetic", "source": "SPI"},
+        )
+
+        # Create ground truth label
+        ground_truth = GroundTruth(
+            protocol="SPI",
+            parameters={
+                "cpol": self.cpol,
+                "cpha": self.cpha,
+                "payload": self.payload,
+            },
+            payload=self.payload,
+            seed=self.seed,
+        )
+
+        return capture, ground_truth
