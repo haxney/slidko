@@ -3,7 +3,7 @@
 ## 1. Synthetic generator core (tests/synth.py)
 
 - [x] 1.1 Define `GroundTruth` label dataclass (protocol, parameters, payload, injected_faults, seed) + generator base returning `(Capture, GroundTruth)`
-- [ ] 1.2 UART generator: arbitrary baud, 8N1 + parameterized frames, SBUS (100000-8E2); test asserting frame timing against baud ground truth
+- [x] 1.2 UART generator: arbitrary baud, 8N1 + parameterized frames, SBUS (100000-8E2); test asserting frame timing against baud ground truth
 - [ ] 1.3 I²C generator: start/stop conditions, addresses, ACK/NAK; test asserting SDA-transitions-while-SCL-high only at start/stop
 - [ ] 1.4 SPI generator: all four CPOL/CPHA modes, CS framing; per-mode timing tests
 - [ ] 1.5 WS2812 generator: spec-exact 800 kHz cells at 24 MS/s; test asserting ±150 ns windows honored
