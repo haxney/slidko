@@ -105,3 +105,49 @@ class SimpleUARTGenerator(Generator):
         )
 
         return capture, ground_truth
+
+
+class SimpleI2CGenerator(Generator):
+    """Simple I²C generator for testing purposes."""
+
+    def __init__(
+        self,
+        address: int = 0x55,
+        payload: list[int] | None = None,
+        clock_stretching: bool = False,
+        seed: int = 0,
+    ):
+        super().__init__(seed)
+        self.address = address
+        self.payload = payload or [0xAA]
+        self.clock_stretching = clock_stretching
+
+    def generate(self) -> tuple[Capture, GroundTruth]:
+        """Generate a simple I²C capture with ground truth.
+
+        Returns:
+            Tuple of (Capture, GroundTruth)
+        """
+        SAMPLE_RATE = 24_000_000
+        channel_data = np.array([1, 0, 0], dtype=bool)  # Minimal signal data
+
+        # Create the capture with proper format expected by Slidko system
+        capture = Capture(
+            channels={"ch0": channel_data},
+            samplerate_hz=SAMPLE_RATE,
+            provenance={"instrument": "synthetic", "source": "I2C"},
+        )
+
+        # Create ground truth label
+        ground_truth = GroundTruth(
+            protocol="I2C",
+            parameters={
+                "address": self.address,
+                "payload": self.payload,
+                "clock_stretching": self.clock_stretching,
+            },
+            payload=self.payload,
+            seed=self.seed,
+        )
+
+        return capture, ground_truth
