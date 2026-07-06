@@ -28,8 +28,10 @@
 
 ## 5. Real-file validation gate
 
-- [ ] 5.1 Add a test that reads `tests/fixtures/sigrok-demo-capture.sr` (real capture, already present — see `tests/fixtures/README.md`) and sanity-checks samplerate (24 MHz) and 8 logic channels
-- [ ] 5.2 Add a test asserting the reader selects chunks by `logic-1-` prefix and ignores interleaved `analog-1-<ch>-<n>` chunks in the same fixture — this is a real, confirmed property of sigrok-cli output, not a hypothetical
+- [ ] 5.1 Add a `demo_capture` pytest fixture in `tests/conftest.py`: returns the path to `tests/fixtures/generated/sigrok-demo-capture.sr` (creating the `generated/` dir), generating it on demand when absent via `sigrok-cli --driver demo --config samplerate=24000000 --time 10 -O srzip -o <path>`, and `pytest.skip`-ing cleanly when sigrok-cli is not installed. The `generated/` dir is gitignored — regenerable fixtures only; real hardware captures live elsewhere and are committed.
+- [ ] 5.2 Using `demo_capture`, add a test that reads the demo capture and sanity-checks samplerate (24 MHz) and 8 logic channels
+- [ ] 5.3 Add a test asserting the reader selects chunks by `logic-1-` prefix and ignores the interleaved `analog-1-<ch>-<n>` chunks the demo driver emits in the same zip — a real, confirmed property of sigrok-cli output (see `tests/fixtures/README.md`), not a hypothetical
+- [ ] 5.4 Confirm the real-file tests SKIP (not fail) on a machine with no sigrok-cli binary, consistent with the capture-acquisition "no sigrok installed" requirement
 
 ## 6. Wrap-up
 

@@ -22,3 +22,14 @@ The wrapper SHALL be a mockable leaf: no test may require actual sigrok-cli exec
 #### Scenario: Test suite runs without sigrok installed
 - **WHEN** the full pytest suite runs on a machine with no sigrok-cli binary and no capture device
 - **THEN** all capture-acquisition tests pass via mocks
+
+### Requirement: Regenerable, skip-safe real-file validation
+The real-file validation of the reader SHALL use a demo `.sr` fixture generated on demand from `sigrok-cli --driver demo` rather than a committed binary, stored under a gitignored `tests/fixtures/generated/` location. Real hardware captures, by contrast, are irreplaceable evidence and SHALL be committed, never gitignored. When neither the demo fixture nor sigrok-cli is available, the validation SHALL skip, never fail.
+
+#### Scenario: Fixture generated on demand
+- **WHEN** the real-file validation runs and the demo fixture is absent but sigrok-cli is installed
+- **THEN** the fixture is generated via `sigrok-cli --driver demo` and the validation proceeds against a real file
+
+#### Scenario: Skip when sigrok-cli is absent
+- **WHEN** the real-file validation runs with neither the fixture present nor sigrok-cli installed
+- **THEN** the test skips with an explanatory reason and the overall suite still passes

@@ -1,6 +1,11 @@
 /.claude/
 /.opencode/
 
+# Regenerable test fixtures ONLY (deterministic sigrok-cli --driver demo output).
+# Real hardware captures are irreplaceable evidence and MUST be committed — keep
+# them out of this dir (in tests/fixtures/ directly, or in corpus/).
+tests/fixtures/generated/
+
 # Python
 /.venv/
 __pycache__/
