@@ -18,13 +18,13 @@
 
 ## 3. UART auto-baud (measure/uart.py)
 
-- [ ] 3.1 Failing tests: exact inference on every standard baud + SBUS; idle-level detection; start-bit framing check; jitter -> reduced confidence never wrong-but-confident
-- [ ] 3.2 Implement min/GCD interval estimation snapped to baud table (+ SBUS exception table as data); tests green
+- [x] 3.1 Failing tests: exact inference on every standard baud + SBUS; idle-level detection; start-bit framing check; jitter -> reduced confidence never wrong-but-confident
+- [x] 3.2 Implement min/GCD interval estimation snapped to baud table (+ SBUS exception table as data); tests green
 
 ## 4. Per-protocol discriminators
 
-- [ ] 4.1 I²C: start/stop structural detection, SDA/SCL role assignment; tests from generator ground truth
-- [ ] 4.2 SPI: clock/CS/data role assignment, CPOL from idle, CPHA via coherent double-decode; all-four-modes test green
+- [x] 4.1 I²C: start/stop structural detection, SDA/SCL role assignment; tests from generator ground truth
+- [x] 4.2 SPI: clock/CS/data role assignment, CPOL from idle, CPHA via coherent double-decode; all-four-modes test green
 - [ ] 4.3 WS2812 / DShot / PWM: interval-histogram signature match against fixed-by-spec timing tables
 - [ ] 4.4 CAN recognition: bit-stuffing signature + standard bitrate table (recognition only)
 - [ ] 4.5 Analog-video recognition stub per ROADMAP scope (recognize, never decode)
