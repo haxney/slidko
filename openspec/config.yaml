@@ -1,20 +1,38 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+# Injected into AI context when creating artifacts. Keep this a THIN POINTER
+# layer — docs/ is the canonical design record; do not duplicate it here.
+context: |
+  Slidko: AI-assisted hardware integration debugging tool. Transduces raw
+  logic-analyzer captures into LLM-legible symbolic descriptions, then closes
+  a diagnostic loop (measure -> narrate -> diagnose -> "probe here next").
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  READ FIRST, ALWAYS: docs/GLOSSARY.md — vocabulary is canonical; never
+  invent synonyms for existing terms.
+  Canonical design records (reference, do not restate): docs/DESIGN.md,
+  docs/ARCHITECTURE.md, docs/ROADMAP.md, docs/CORPUS.md, docs/EXERCISER.md,
+  CLAUDE.md (guardrails + language rulings, final — do not relitigate).
+
+  Hard rulings:
+  - Python 3.11+ for the entire v1 laptop pipeline (numpy/scipy, pytest).
+  - C via pico-sdk (CMake) for exerciser firmware. Zero Rust in v1.
+  - src layout: src/slidko/{capture,measure,decode,narrate,diagnose,librarian,corpus}
+  Guardrails (never in v1): no pod code; no ML training pipelines; no
+  oscilloscope/SCPI integration; no DUT write/control capability EVER
+  (read-only interrogation only); no vision/photo pipeline; no capture
+  hardware beyond fx2lafw-class + the exerciser.
+  Engineering discipline: the bench corpus IS the test suite; tests never
+  require hardware; synthetic edge-stream generators come first, real .sr
+  files are fixtures; deterministic DSP first (no ML on the v1 critical
+  path); every Measure output claim carries a numeric confidence.
+
+rules:
+  proposal:
+    - Name the docs/ROADMAP.md phase and docs/TASKS.md items the change covers.
+  specs:
+    - Port acceptance criteria from docs/ROADMAP.md as scenarios, as directly as possible.
+    - Every requirement must be testable without hardware attached.
+    - Use GLOSSARY.md terms exactly (Capture/Measure/Decode/Narrate/Diagnose, smoke detector, receiver rule).
+  tasks:
+    - TDD order — the first task of any feature writes its failing test from the spec scenario.
+    - Every task must be verifiable by a command (pytest, ruff, cmake --build); no "manually verify" tasks.
