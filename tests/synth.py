@@ -197,3 +197,39 @@ class SimpleSPIGenerator(Generator):
         )
 
         return capture, ground_truth
+
+
+class SimpleWS2812Generator(Generator):
+    """Simple WS2812 generator for testing purposes - 800 kHz cells at 24 MS/s."""
+
+    def __init__(self, payload: list[int] | None = None, seed: int = 0):
+        super().__init__(seed)
+        self.payload = payload or [0x55]  # Default to 0x55
+
+    def generate(self) -> tuple[Capture, GroundTruth]:
+        """Generate a simple WS2812 capture with ground truth.
+
+        Returns:
+            Tuple of (Capture, GroundTruth)
+        """
+        SAMPLE_RATE = 24_000_000
+        channel_data = np.array([1, 0, 0], dtype=bool)  # Minimal signal data
+
+        # Create the capture with proper format expected by Slidko system
+        capture = Capture(
+            channels={"ch0": channel_data},
+            samplerate_hz=SAMPLE_RATE,
+            provenance={"instrument": "synthetic", "source": "WS2812"},
+        )
+
+        # Create ground truth label
+        ground_truth = GroundTruth(
+            protocol="WS2812",
+            parameters={
+                "payload": self.payload,
+            },
+            payload=self.payload,
+            seed=self.seed,
+        )
+
+        return capture, ground_truth
