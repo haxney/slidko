@@ -28,7 +28,8 @@
 
 ## 5. Real-file validation gate
 
-- [ ] 5.1 Add a fixture-gated test (skipped when fixture absent) that reads a real sigrok-cli-generated .sr file from `tests/fixtures/` and sanity-checks samplerate/channels — documents the MODERATE-confidence format assumptions pending a real capture
+- [ ] 5.1 Add a test that reads `tests/fixtures/sigrok-demo-capture.sr` (real capture, already present — see `tests/fixtures/README.md`) and sanity-checks samplerate (24 MHz) and 8 logic channels
+- [ ] 5.2 Add a test asserting the reader selects chunks by `logic-1-` prefix and ignores interleaved `analog-1-<ch>-<n>` chunks in the same fixture — this is a real, confirmed property of sigrok-cli output, not a hypothetical
 
 ## 6. Wrap-up
 

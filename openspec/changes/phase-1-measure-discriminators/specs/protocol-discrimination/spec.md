@@ -31,6 +31,10 @@ For each recognized protocol the discriminator SHALL emit the parameters Decode 
 - **WHEN** SPI synthetic bursts are generated in each of the four CPOL/CPHA modes
 - **THEN** the inferred (CPOL, CPHA) matches ground truth in all four cases
 
+#### Scenario: DShot rate recognition by bit timing
+- **WHEN** a synthetic DShot capture is generated at DShot150 (bit period 6.67 µs, T0H 2500 ns, T1H 5000 ns), DShot300 (3.33 µs / 1250 ns / 2500 ns), or DShot600 (1.67 µs / 625 ns / 1250 ns) per docs/EXERCISER.md
+- **THEN** the discriminator recognizes the correct rate from the interval-histogram signature, zero manual parameters
+
 ### Requirement: Numeric confidence on every claim
 Every Measure output claim (protocol, role, parameter) SHALL carry a numeric confidence in [0, 1]; downstream layers and tests consume the confidence, not prose hedges.
 

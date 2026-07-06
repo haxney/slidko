@@ -2,7 +2,7 @@
 
 ## Context
 
-First real pipeline code. The .sr format is a zip container (configparser `metadata` + packed `logic-1-*` chunks); format details are MODERATE confidence until checked against a real sigrok-cli capture (docs/TASKS.md item 2 flag). Architecture posture: parasitic on sigrok via subprocess + files, never in-process bindings (docs/ARCHITECTURE.md § Sigrok posture).
+First real pipeline code. The .sr format is a zip container (configparser `metadata` + packed `logic-1-*` chunks). Format details are now CONFIRMED against a real local capture (`tests/fixtures/sigrok-demo-capture.sr`, generated via `sigrok-cli --driver demo`, no hardware/network required — see `tests/fixtures/README.md`): `unitsize=1`, multi-chunk (`logic-1-1`, `logic-1-2`, ...), and critically, **analog chunks (`analog-1-<ch>-<n>`) are interleaved in the same zip** — the reader must select strictly by `logic-1-` prefix. Architecture posture: parasitic on sigrok via subprocess + files, never in-process bindings (docs/ARCHITECTURE.md § Sigrok posture).
 
 ## Goals / Non-Goals
 
@@ -24,6 +24,6 @@ First real pipeline code. The .sr format is a zip container (configparser `metad
 
 ## Risks / Trade-offs
 
-- [.sr format assumptions wrong (chunk naming, unitsize semantics)] → acceptance includes verifying against one real sigrok-cli file before Phase 1 depends on the reader; assumptions isolated in one module.
+- [.sr format assumptions wrong (chunk naming, unitsize semantics)] → RESOLVED: verified against `tests/fixtures/sigrok-demo-capture.sr`, a real local capture. Remaining residual risk is narrow (other sigrok-cli versions/output modes might differ); assumptions stay isolated in one module.
 - [Endianness/bit-order mistakes silently flip channels] → round-trip test uses asymmetric per-channel patterns that detect ordering errors.
 - [Writer diverges from what sigrok-cli emits] → writer output is validated by our reader only; never claimed sigrok-compatible beyond the tested subset.

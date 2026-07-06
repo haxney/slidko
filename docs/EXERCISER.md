@@ -47,7 +47,18 @@ Required commands (v1):
   The host uses this to know which capabilities are live; capability
   advertisement is silicon-aware, not hardcoded.
 - `ws2812 {pin, count, pattern, repeat}` — PIO-generated, spec-exact timing.
-- `dshot {pin, rate, value, repeat}` — DShot150/300/600 frames.
+- `dshot {pin, rate, value, repeat}` — DShot150/300/600 frames. Exact bit
+  timing (source: Betaflight DShot docs, cross-checked against independent
+  references; confidence HIGH — these are stable, long-published numbers):
+
+  | Rate | Bit period | T0H | T1H |
+  |---|---|---|---|
+  | DShot150 | 6.67 µs | 2500 ns | 5000 ns |
+  | DShot300 | 3.33 µs | 1250 ns | 2500 ns |
+  | DShot600 | 1.67 µs | 625 ns | 1250 ns |
+
+  Minimum inter-frame gap: ~2 µs. T1H is always 2× T0H; low time is the
+  remainder of the bit period.
 - `pwm {pin, freq_hz, duty | pulse_us}` — servo/PWM.
 - `uart_tx {pin, baud, frame, payload, repeat}` — including SBUS-style
   non-standard frames.
