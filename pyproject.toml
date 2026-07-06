@@ -17,15 +17,41 @@ dev = [
     "ruff",
 ]
 
+[tool.ruff]
+line-length = 88
+
 [tool.ruff.lint]
 extend-select = [
-    "I",  # isort
+    "I",   # isort
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "UP",  # pyupgrade
+    "B",   # bugbear
+    "A",   # builtins
+    "C4",  # comprehensions
+    "DTZ", # datetime timezone
+    "ISC", # implicit string concatenation
+    "G",   # logging format
+    "PGH", # pygrep hooks
+    "PIE", # import
+    "PL",  # pylint
+    "PT",  # pytest
+    "RUF", # ruff specific
+    "SIM", # similarity
+    "TID", # tidy imports
+    "TCH", # type check
 ]
-extend-ignore = []
+extend-ignore = [
+    "PLR", # design related
+]
+fixable = ["ALL"]
+unfixable = []
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+preview = true
 
 [tool.pytest.ini_options]
 python_files = ["tests/*.py"]
