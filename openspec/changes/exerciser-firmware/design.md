@@ -54,12 +54,27 @@ firmware/
 result structs, so `test/` compiles it with the host `cc`. `hw/` is the only
 code that touches `hardware/pio.h`, `tusb.h`, etc.
 
-### pico-sdk pin
+### pico-sdk provisioning + pin
 
-Pin pico-sdk to a released tag in `CMakeLists.txt` (via `PICO_SDK_FETCH_FROM_GIT`
-tag or a submodule). Use **2.3.0** (latest release as of 2026-07-06; first-class
-RP2350 + RISC-V support landed in 2.0.0). Board targets: `pico` (RP2040) and
-`pico2` (RP2350). CMake builds both from unmodified sources.
+The runner provisions the SDK itself — no manual pre-install. Clone the pinned
+tag to a gitignored, repo-relative path and init the tinyusb submodule (required
+for USB CDC), idempotently (skip the clone if it is already present):
+
+```
+git clone --branch 2.3.0 --depth 1 \
+    https://github.com/raspberrypi/pico-sdk.git firmware/vendor/pico-sdk
+git -C firmware/vendor/pico-sdk submodule update --init --depth 1 lib/tinyusb
+```
+
+Use **2.3.0** (latest release as of 2026-07-06; first-class RP2350 + RISC-V
+support landed in 2.0.0). Pass the location to CMake **explicitly**
+(`-DPICO_SDK_PATH=firmware/vendor/pico-sdk`) rather than via an env var — the
+runner executes each command in a fresh shell, so an exported `PICO_SDK_PATH`
+does not persist. `firmware/vendor/` and `firmware/build/` are gitignored (the
+SDK is large and is not our source — never commit it). Board targets: `pico`
+(RP2040) and `pico2` (RP2350); CMake builds both from unmodified sources. If the
+clone fails (genuinely no network), that is a clean BLOCKED.md stop; once
+provisioned, later runs need no network because the clone is skipped.
 
 ### Clock-parameterized timing
 

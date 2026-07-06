@@ -3,19 +3,21 @@
 > Prerequisite: `dev-tooling-gate` applied (provides the repo `.clang-format`).
 > Parallel track. **Toolchain note:** verification here uses the C toolchain
 > (`cmake`, `ctest`, host `cc`, `arm-none-eabi-gcc`, `clang-format`) — NOT the
-> Python `make check`. The overnight runner is allowlisted for these (see
-> `.opencode/agents/overnight.md`); pico-sdk must be pre-provisioned at
-> `$PICO_SDK_PATH` (no network overnight — a missing SDK is a BLOCKED.md stop).
-> Configure/build out-of-source under `firmware/build/`; run native tests via
-> `ctest --test-dir firmware/build --output-on-failure`. No task requires
-> attached hardware; flashing and on-silicon validation are explicitly human
-> steps.
+> Python `make check`. The overnight runner is allowlisted for these AND for
+> cloning the pico-sdk (see `.opencode/agents/overnight.md`), so it provisions
+> the SDK itself in group 1 — no manual pre-install. Pass
+> `-DPICO_SDK_PATH=firmware/vendor/pico-sdk` on every `cmake` line (env vars do
+> not persist across the runner's fresh shells). Configure/build out-of-source
+> under `firmware/build/`; run native tests via `ctest --test-dir firmware/build
+> --output-on-failure`. No task requires attached hardware; flashing and
+> on-silicon validation are explicitly human steps.
 
-## 1. Project skeleton + pico-sdk pin
+## 1. Provision pico-sdk + project skeleton
 
-- [ ] 1.1 Create `firmware/CMakeLists.txt` (pico-sdk project), `firmware/pico_sdk_import.cmake`, and the `src/{hw,protocol}` + `test/` tree per design.md. Pin pico-sdk to tag **2.3.0**. Declare board targets `pico` (RP2040) and `pico2` (RP2350)
-- [ ] 1.2 Add a `SYS_CLK_HZ` config selected per target (133000000 for `pico`, 150000000 for `pico2`); NO timing constant is hardcoded for a single clock
-- [ ] 1.3 Verify (runner/CI/human): `cmake` configures and the `pico2` target builds from a clean checkout with the pinned SDK; repeat for `pico`
+- [ ] 1.1 Provision the SDK idempotently: if `ls firmware/vendor/pico-sdk/pico_sdk_init.cmake` fails, run `git clone --branch 2.3.0 --depth 1 https://github.com/raspberrypi/pico-sdk.git firmware/vendor/pico-sdk` then `git -C firmware/vendor/pico-sdk submodule update --init --depth 1 lib/tinyusb`. Verify `ls firmware/vendor/pico-sdk/pico_sdk_init.cmake` now succeeds. (`firmware/vendor/` and `firmware/build/` are gitignored — never commit the SDK)
+- [ ] 1.2 Create `firmware/CMakeLists.txt` (pico-sdk project), `firmware/pico_sdk_import.cmake`, and the `src/{hw,protocol}` + `test/` tree per design.md. Pin pico-sdk to tag **2.3.0**. Declare board targets `pico` (RP2040) and `pico2` (RP2350)
+- [ ] 1.3 Add a `SYS_CLK_HZ` config selected per target (133000000 for `pico`, 150000000 for `pico2`); NO timing constant is hardcoded for a single clock
+- [ ] 1.4 Verify (runner/CI/human): `cmake -S firmware -B firmware/build -DPICO_SDK_PATH=firmware/vendor/pico-sdk` configures and `cmake --build firmware/build` builds the `pico2` target from a clean checkout; repeat for `pico`
 
 ## 2. Portable protocol layer (host-testable, no SDK headers)
 
@@ -53,6 +55,6 @@
 
 ## 8. CI + style
 
-- [ ] 8.1 Add a firmware CI job to `.github/workflows/ci.yml`: install `cmake`, `gcc` (host), and `arm-none-eabi-gcc` via apt (open toolchain only); build+run the native `protocol/` tests; compile `pico` and `pico2` targets. Add `clang-format --dry-run --Werror --style=file` over `firmware/**/*.{c,h}` using the repo `.clang-format`
+- [ ] 8.1 Add a firmware CI job to `.github/workflows/ci.yml`: install `cmake`, `gcc` (host), and `arm-none-eabi-gcc` via apt (open toolchain only); provision the SDK with the same idempotent clone as task 1.1 (or an `actions/checkout` submodule step) into `firmware/vendor/pico-sdk`; build+run the native `protocol/` tests; compile `pico` and `pico2` targets with `-DPICO_SDK_PATH=firmware/vendor/pico-sdk`. Add `clang-format --dry-run --Werror --style=file` over `firmware/**/*.{c,h}` using the repo `.clang-format`
 - [ ] 8.2 Verify (runner/CI/human): the firmware job passes on a clean checkout with no account-walled or Windows-only tools and no attached hardware
 - [ ] 8.3 Commit naming the task groups

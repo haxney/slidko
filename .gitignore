@@ -13,3 +13,8 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 /logs/
+
+# Firmware: build tree + runner-provisioned pico-sdk (regenerable; the SDK is
+# large and is not our source — never commit it).
+/firmware/build/
+/firmware/vendor/

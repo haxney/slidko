@@ -27,9 +27,10 @@ a style-only rewrite again.
   field-gold holdout. Consumes Phase 0.
 - `exerciser-firmware` — pico-sdk C firmware. **Different toolchain:** uses
   `cmake`/`ctest`/`arm-none-eabi-gcc`/`clang-format`, not the Python `make
-  check`. The overnight runner is now allowlisted for these
-  (`.opencode/agents/overnight.md`); pico-sdk must be pre-provisioned at
-  `$PICO_SDK_PATH` (no network overnight). CI and humans verify it too.
+  check`. The overnight runner is allowlisted for these and for cloning the
+  pinned pico-sdk (`.opencode/agents/overnight.md`), so it provisions the SDK
+  itself into the gitignored `firmware/vendor/pico-sdk` (idempotent; needs
+  network only on the first run). CI and humans verify it too.
 
 Every change's `tasks.md` ends its groups with the appropriate verification
 (`make check` for Python; the C toolchain for firmware). Never proceed past a
