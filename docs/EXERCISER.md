@@ -11,6 +11,22 @@ Session-optional: the poke loop degrades to watch + twiddle without it.
   timing constants MUST be parameterized by system clock (133 vs 150 MHz) so
   migration is a config change, not a re-derivation. PIO programs are
   forward-compatible (RP2350 PIO is a superset).
+- **Variant ruling: RP2350A, A4 stepping.** Part-number grammar is
+  `RP` + `235[flash]` + `[package]` + `0` + `[stepping]`:
+  - Flash field: `2350` = 0 MB in-package (external QSPI flash on the board);
+    `2354` = 2 MB stacked in-package. Irrelevant for a Pico 2 buyer — the board
+    carries external flash. Only matters if spinning a custom PCB and deleting
+    the external flash chip. Exerciser firmware is small; either is ample.
+  - Package field: `A` = QFN-60 / 30 GPIO (this is what the Pico 2 uses);
+    `B` = QFN-80 / 48 GPIO. **Get A.** Exerciser peak concurrent pin demand is
+    well under 30; B solves a non-problem and only exists in custom-board form.
+  - Stepping field: `A2` (E9-broken) vs `A4` (E9 hardware-fixed; adds 5V GPIO
+    tolerance while powered). **Prefer A4** (see E9 section). A2 is adequate for
+    pure output-stimulus duty; A4 is required once input-sensing features are
+    enabled. Firmware detects stepping at boot and self-limits (see below).
+  - Canonical orderable part / board: RP2350A0A4 chip, or a Pico 2 board whose
+    listing states A4 stepping (treat silence as A2). Channel is deliberately
+    mixed A2/A4 as of 2025 reporting; verify at point of purchase.
 - **Toolchain: pico-sdk (C, CMake).** Requirements are hard: open toolchain,
   headless Linux builds, CI-friendly, no account-walled downloads, no
   Windows-only tools. Pin the pico-sdk version in the build.
@@ -25,7 +41,11 @@ command carries an `id`; every response echoes it with `ok|err` + payload.
 
 Required commands (v1):
 
-- `info` — firmware version, clock, pin map, capability list.
+- `info` — firmware version, clock, pin map, capability list, **detected
+  silicon (chip family + RP2350 stepping A2/A4) and E9 posture** (whether
+  internal-pull-down / input-sensing features are enabled or self-disabled).
+  The host uses this to know which capabilities are live; capability
+  advertisement is silicon-aware, not hardcoded.
 - `ws2812 {pin, count, pattern, repeat}` — PIO-generated, spec-exact timing.
 - `dshot {pin, rate, value, repeat}` — DShot150/300/600 frames.
 - `pwm {pin, freq_hz, duty | pulse_us}` — servo/PWM.
@@ -60,12 +80,52 @@ Required commands (v1):
 
 ## RP2350 E9 erratum (application-critical)
 
-Early RP2350 steppings latch GPIO inputs at ~2.1–2.2 V when internal
-pull-downs are used — pathological for a device whose job is touching unknown
-DUT circuits. **Design rule: external pull-downs only on DUT-facing pins.**
-Remediation status in current steppings: UNKNOWN — verify before any board
-design that relies on internal pull-downs. (Irrelevant to pure output/
-stimulus duty; it bites inputs.)
+E9: on the **A2 stepping**, a GPIO input can latch near ~2.1–2.2 V when the
+input buffer is enabled — pathological for a device whose job is touching
+unknown DUT circuits. Community testing found it more pervasive than the
+original erratum text: the latch can occur with a pull-down enabled AND with
+no pull at all, so "just add an external pull-down" was an incomplete
+workaround on A2.
+
+**Fix status (corrected — verify at point of purchase):**
+- **A4 stepping fixes E9 in hardware** (the fix rode in on the internal A3
+  stepping and carries into A4; A4 adds bootrom/security hardening on top).
+  On A4, internal pulls work as on RP2040, and A4 additionally provides **5V
+  GPIO tolerance while powered** — a real safety margin for DUT-facing inputs.
+- **A2 is still in the channel** (deliberately mixed; distributor dead stock).
+  Confidence: HIGH on the A2/A4 fix map per the July 2025 PCN; MODERATE on any
+  given vendor's current stock — verify.
+
+**Design rules:**
+- Target A4 (RP2350A0A4). On A4, internal pull-downs on DUT-facing pins are
+  usable.
+- On A2, or when probing unknown rails generally, use **external pull-downs on
+  DUT-facing input pins** and avoid relying on internal pull-downs / edge
+  interrupts sourced from them.
+- E9 is an INPUT pathology only — irrelevant to pure output/stimulus duty. It
+  gates input-sensing features (sync-line readback, `adc_watch`, any
+  closed-loop poke that reads a DUT line).
+
+**Runtime guard (required — the firmware must not blindly trigger E9):**
+- At boot, **detect the silicon stepping** (chip-ID / bootrom-reported
+  revision) and record an `e9_affected` flag (true on A2, false on A4).
+- On an `e9_affected` chip, the firmware **must not enable internal pull-downs
+  on DUT-facing input pins and must not arm pull-down-sourced edge
+  interrupts**; input-sensing capabilities (`adc_watch`, sync readback,
+  closed-loop reads) are **self-disabled or degraded**, and `info` reports
+  them as unavailable rather than silently misbehaving. If such a command
+  arrives on an affected chip, respond `err` with an explicit
+  `e9_unavailable` reason, not a wrong reading.
+- On A4, all input features are enabled.
+- Rationale: the same firmware image runs on whatever stepping arrives; it
+  degrades gracefully on A2 (output stimulus fully functional) rather than
+  producing corrupt input readings that would poison corpus ground truth.
+- Detection caveat: exact chip-ID/stepping read path should be verified
+  against the current pico-sdk and RP2350 datasheet §chip identification
+  before trusting it. Confidence: MODERATE that a clean stepping read is
+  exposed; if not, fall back to a boot-time functional probe (enable internal
+  pull-down on a known-floating internal test pin, read: high/latched ⇒ A2,
+  low ⇒ A4).
 
 ## Bonus role (nearly free)
 
