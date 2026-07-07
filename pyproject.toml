@@ -5,7 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "slidko"
 version = "0.0.1"
+description = "AI-assisted hardware integration debugging tool"
+readme = "README.md"
 requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "numpy",
     "scipy",
@@ -18,43 +25,14 @@ dev = [
 ]
 
 [tool.ruff]
-line-length = 88
-
-[tool.ruff.lint]
-extend-select = [
-    "I",   # isort
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "UP",  # pyupgrade
-    "B",   # bugbear
-    "A",   # builtins
-    "C4",  # comprehensions
-    "DTZ", # datetime timezone
-    "ISC", # implicit string concatenation
-    "G",   # logging format
-    "PGH", # pygrep hooks
-    "PIE", # import
-    "PL",  # pylint
-    "PT",  # pytest
-    "RUF", # ruff specific
-    "SIM", # similarity
-    "TID", # tidy imports
-    "TCH", # type check
+target-version = "py311"
+lint.extend-select = [
+    "I",  # isort
 ]
-extend-ignore = [
-    "PLR", # design related
-]
-fixable = ["ALL"]
-unfixable = []
+lint.preview = true
 
 [tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
 preview = true
 
 [tool.pytest.ini_options]
-python_files = ["tests/*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
 testpaths = ["tests"]

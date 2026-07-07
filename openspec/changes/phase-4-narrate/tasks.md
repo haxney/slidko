@@ -6,19 +6,19 @@
 
 ## 1. Assertion + Evidence schema
 
-- [ ] 1.1 Write failing tests in `tests/narrate/test_assertion.py`: `Assertion` (kind, text, evidence, confidence∈[0,1]) and `Evidence` (event_indices, sample_ranges, finding_refs) are frozen dataclasses comparing by value; `Assertion`↔JSON round-trips with evidence intact
-- [ ] 1.2 Implement `src/slidko/narrate/model.py` with `Assertion` and `Evidence` per design.md + `to_json`/`from_json`; tests green
+- [x] 1.1 Write failing tests in `tests/narrate/test_assertion.py`: `Assertion` (kind, text, evidence, confidence∈[0,1]) and `Evidence` (event_indices, sample_ranges, finding_refs) are frozen dataclasses comparing by value; `Assertion`↔JSON round-trips with evidence intact
+- [x] 1.2 Implement `src/slidko/narrate/model.py` with `Assertion` and `Evidence` per design.md + `to_json`/`from_json`; tests green
 
 ## 2. I²C address book
 
-- [ ] 2.1 Write failing tests in `tests/narrate/test_address_book.py`: lookup of 0x68 returns a NON-empty candidate list including an IMU part; an unknown address returns an empty list (not an error); lookups never return a single forced identification
-- [ ] 2.2 Implement `src/slidko/narrate/address_book.py` as committed data (dict addr→list of `{part, kind, note}`) seeded from the table in design.md, plus `lookup(addr) -> list[dict]`; tests green
-- [ ] 2.3 Add a test asserting the book is data-shaped (a dict/JSON, no branching logic) so future parts are added by editing data
+- [x] 2.1 Write failing tests in `tests/narrate/test_address_book.py`: lookup of 0x68 returns a NON-empty candidate list including an IMU part; an unknown address returns an empty list (not an error); lookups never return a single forced identification
+- [x] 2.2 Implement `src/slidko/narrate/address_book.py` as committed data (dict addr→list of `{part, kind, note}`) seeded from the table in design.md, plus `lookup(addr) -> list[dict]`; tests green
+- [x] 2.3 Add a test asserting the book is data-shaped (a dict/JSON, no branching logic) so future parts are added by editing data
 
 ## 3. Transaction summarization
 
-- [ ] 3.1 Write failing test: a synthetic I²C event stream of N transactions to 0x68 with M NAKs produces a `transaction.summary` assertion whose text states N and M with the address and candidate part names, and whose evidence references the contributing event indices
-- [ ] 3.2 Implement `summarize_transactions(events) -> list[Assertion]`; tests green
+- [x] 3.1 Write failing test: a synthetic I²C event stream of N transactions to 0x68 with M NAKs produces a `transaction.summary` assertion whose text states N and M with the address and candidate part names, and whose evidence references the contributing event indices
+- [x] 3.2 Implement `summarize_transactions(events) -> list[Assertion]`; tests green
 
 ## 4. Cross-channel coincidence
 

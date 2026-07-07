@@ -1,5 +1,7 @@
 """I²C discriminator functions for Slidko protocol detection."""
 
+from typing import Any
+
 import numpy as np
 
 from slidko.measure.edges import extract_edges
@@ -78,7 +80,7 @@ def analyze_i2c_periodicity(
 
 def detect_i2c_protocol(
     scl_channel: np.ndarray, sda_channel: np.ndarray
-) -> dict[str, any]:
+) -> dict[str, Any]:
     """
     Detect I²C protocol from raw channel data.
 
@@ -122,7 +124,7 @@ def get_i2c_baud_table() -> list[int]:
 
 def i2c_discriminator(
     scl_channel: np.ndarray, sda_channel: np.ndarray
-) -> dict[str, any]:
+) -> dict[str, Any]:
     """
     Main discriminator function for I²C.
 
