@@ -1,9 +1,9 @@
-import pytest
 from dataclasses import dataclass
-from typing import Dict, List
+
+import pytest
 
 # Import from the actual module being tested
-from slidko.diagnose.instruction import Instruction, ValidationError, is_pad_level_claim, validate_instruction
+from slidko.diagnose.instruction import Instruction, validate_instruction
 
 
 # Mock retrieval class for testing
@@ -15,17 +15,28 @@ class MockRetrieval:
 
 
 def test_missing_expected_outcome_per_hypothesis_field():
-    """Test that instruction missing expected_outcome_per_hypothesis field is rejected"""
-        
-    # What we're actually testing is that validation works in case of invalid schema
-    # We'll create an instance then manually test it's handled correctly 
-    try:
-        # The dataclass enforces all fields, so let's just make sure our functions are callable
-        assert is_pad_level_claim is not None
-        assert validate_instruction is not None
-        
-    except Exception:
-        pass  # Expected behavior during testing
+    """A canned LLM output missing expected_outcome_per_hypothesis is rejected.
+
+    Current implementation gap (tracked in fix-regression-suite): Instruction
+    is a strict dataclass with no dict-level pre-validation step, so a raw
+    LLM-shaped dict missing a required field can never reach
+    validate_instruction() at all -- construction itself raises TypeError.
+    The spec scenario ("a canned LLM output ... is validated") implies
+    validation of raw dict/JSON input before dataclass construction, which
+    does not exist yet. This test documents the actual current behavior.
+    """
+    canned_output = {
+        "action": "clip",
+        "target": "TP7",
+        "parameters": {},
+        # expected_outcome_per_hypothesis deliberately omitted
+        "hazard_notes": "test hazard note",
+        "executor": "human",
+        "citations": [],
+    }
+
+    with pytest.raises(TypeError):
+        Instruction(**canned_output)  # type: ignore[arg-type]
 
 
 def test_pad_level_claim_without_citation_or_unknown_flag():
@@ -39,21 +50,22 @@ def test_pad_level_claim_without_citation_or_unknown_flag():
         hazard_notes="test hazard note",
         executor="human",
         citations=[],  # No citation
-        unknown=False   # No unknown flag
+        unknown=False,  # No unknown flag
     )
-    
+
     # Mock retrieval - not dark board
     mock_retrieval = MockRetrieval(
-        board_id="test-board",
-        tier="open-book",
-        fragments={"doc1#anchor1": "content1"}
+        board_id="test-board", tier="open-book", fragments={"doc1#anchor1": "content1"}
     )
-    
+
     # Try to validate - should return error for missing citation/unknown flag
     errors = validate_instruction(instruction, mock_retrieval)
     assert len(errors) > 0
     error_messages = [str(e) for e in errors]
-    assert any("Pad-level placement claim requires citation or unknown=True" in msg for msg in error_messages)
+    assert any(
+        "Pad-level placement claim requires citation or unknown=True" in msg
+        for msg in error_messages
+    )
 
 
 def test_dangling_citation():
@@ -67,16 +79,14 @@ def test_dangling_citation():
         hazard_notes="test hazard note",
         executor="human",
         citations=["doc2#anchor2"],  # This citation does not exist in fragments
-        unknown=False
+        unknown=False,
     )
-    
+
     # Mock retrieval - no citation available
     mock_retrieval = MockRetrieval(
-        board_id="test-board",
-        tier="open-book",
-        fragments={"doc1#anchor1": "content1"}
+        board_id="test-board", tier="open-book", fragments={"doc1#anchor1": "content1"}
     )
-    
+
     # Try to validate - should return error for dangling citation
     errors = validate_instruction(instruction, mock_retrieval)
     assert len(errors) > 0
@@ -86,7 +96,7 @@ def test_dangling_citation():
 
 def test_empty_hazard_notes_on_placement_instruction():
     """Test that placement instruction with empty hazard notes is rejected"""
-    # Create pad-level instruction with empty hazard notes  
+    # Create pad-level instruction with empty hazard notes
     instruction = Instruction(
         action="clip",
         target="TP7",
@@ -95,26 +105,27 @@ def test_empty_hazard_notes_on_placement_instruction():
         hazard_notes="",  # Empty hazard notes
         executor="human",
         citations=["doc1#anchor1"],
-        unknown=False
+        unknown=False,
     )
-    
+
     # Mock retrieval
     mock_retrieval = MockRetrieval(
-        board_id="test-board", 
-        tier="open-book",
-        fragments={"doc1#anchor1": "content1"}
+        board_id="test-board", tier="open-book", fragments={"doc1#anchor1": "content1"}
     )
-    
+
     # Try to validate - should return error for empty hazard notes
     errors = validate_instruction(instruction, mock_retrieval)
     assert len(errors) > 0
     error_messages = [str(e) for e in errors]
-    assert any("Pad-level placement claim requires non-empty hazard_notes" in msg for msg in error_messages)
+    assert any(
+        "Pad-level placement claim requires non-empty hazard_notes" in msg
+        for msg in error_messages
+    )
 
 
 def test_valid_instruction():
     """Test that a valid instruction passes validation"""
-    # Create valid instruction 
+    # Create valid instruction
     instruction = Instruction(
         action="clip",
         target="TP7",
@@ -123,47 +134,46 @@ def test_valid_instruction():
         hazard_notes="test hazard note",
         executor="human",
         citations=["doc1#anchor1"],
-        unknown=False
+        unknown=False,
     )
-    
-    # Mock retrieval 
+
+    # Mock retrieval
     mock_retrieval = MockRetrieval(
-        board_id="test-board",
-        tier="open-book",
-        fragments={"doc1#anchor1": "content1"}
+        board_id="test-board", tier="open-book", fragments={"doc1#anchor1": "content1"}
     )
-    
+
     # Should not return any errors for valid instruction
     errors = validate_instruction(instruction, mock_retrieval)
     assert len(errors) == 0
 
 
 def test_valid_ic_pin_with_accessibility_filter():
-    """Test that a valid pad-level claim with fine pitch IC pin on unpowered board is still rejected (only for citation)"""
+    """A pad-level claim with a fine-pitch IC pin on an unpowered board is
+    still rejected, but only for missing citation (not accessibility)."""
     # A pad level claim should be rejected because citation is missing
-    # The accessibility filter wouldn't trigger as it's not powered 
+    # The accessibility filter wouldn't trigger as it's not powered
     instruction = Instruction(
         action="probe",
-        target="U3 pin 4",  
+        target="U3 pin 4",
         parameters={"power_state": "off", "pitch": 0.4},  # Fine pitch but powered off
         expected_outcome_per_hypothesis={"hyp1": "outcome1"},
         hazard_notes="test hazard note",
         executor="human",
         citations=[],  # No citation
-        unknown=False
+        unknown=False,
     )
-    
-    # Mock retrieval 
+
+    # Mock retrieval
     mock_retrieval = MockRetrieval(
-        board_id="test-board",
-        tier="open-book",
-        fragments={"doc1#anchor1": "content1"}
+        board_id="test-board", tier="open-book", fragments={"doc1#anchor1": "content1"}
     )
-    
-    # Should fail because no citation, but NOT for accessibility filter (because powered off)
+
+    # Should fail because no citation, but NOT for accessibility (powered off)
     errors = validate_instruction(instruction, mock_retrieval)
     assert len(errors) > 0
     error_messages = [str(e) for e in errors]
-    # Should be about missing citation, not accessibility 
-    assert any("citation" in msg.lower() or "unknown" in msg.lower() for msg in error_messages)
+    # Should be about missing citation, not accessibility
+    assert any(
+        "citation" in msg.lower() or "unknown" in msg.lower() for msg in error_messages
+    )
     assert not any("Accessibility filter" in msg for msg in error_messages)

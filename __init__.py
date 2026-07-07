@@ -1,3 +1,0 @@
-"""
-Root module of Slidko.
-"""
