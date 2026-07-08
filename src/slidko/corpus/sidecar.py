@@ -77,7 +77,9 @@ class Sidecar:
     def from_json(cls, data: dict[str, Any]) -> "Sidecar":
         """Create a Sidecar instance from JSON data, handling key name collisions."""
         # Handle the special case where "class" in JSON maps to "class_" in Python
-        fault_injected_data = data.get("fault_injected", {})
+        fault_injected_data = dict(
+            data.get("fault_injected", {})
+        )  # Copy to avoid mutating original
         if "class" in fault_injected_data:
             fault_injected_data["class_"] = fault_injected_data.pop("class")
 
@@ -127,7 +129,7 @@ class Sidecar:
     @staticmethod
     def validate(sidecar: "Sidecar") -> list[str]:
         """Validate the sidecar and return list of validation errors."""
-        errors = []
+        errors: list[str] = []
 
         # Check that receiver_verdict is present (required field)
         if sidecar.receiver_verdict is None:
@@ -135,9 +137,9 @@ class Sidecar:
 
         # Check that referee validates when present
         if sidecar.referee is not None:
-            # The spec says referee validates when present but doesn't define its structure
-            # Since it's reserved for dual-instrument cells, we'll accept any dict as valid
-            # but this could be extended with deeper validation if needed
+            # The spec says referee validates when present but doesn't define its
+            # structure Since it's reserved for dual-instrument cells, we'll accept any
+            # dict as valid but this could be extended with deeper validation if needed
             pass
 
         return errors

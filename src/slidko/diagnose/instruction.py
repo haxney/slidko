@@ -23,10 +23,12 @@ class Instruction:
     action: str
     target: str
     parameters: dict
-    expected_outcome_per_hypothesis: dict[str, str]  # one entry per live hyp
     hazard_notes: str
     executor: str  # "human" | "exerciser"
     citations: list[str]  # ["doc-id#anchor", ...]
+    expected_outcome_per_hypothesis: dict[str, str] | None = (
+        None  # one entry per live hyp
+    )
     unknown: bool = False  # explicit "I don't know where" flag
 
 
@@ -85,13 +87,6 @@ def validate_instruction(
         List of validation errors (empty if valid)
     """
     errors = []
-
-    # Rule 1: expected_outcome_per_hypothesis must be a non-empty dict (it's
-    # always required by dataclass) -- but let's make sure it's valid
-    if instruction.expected_outcome_per_hypothesis is None:
-        errors.append(
-            ValidationError("Missing required field: expected_outcome_per_hypothesis")
-        )
 
     # Rule 2: Check pad-level claims for citations or unknown flag
     if is_pad_level_claim(instruction):
