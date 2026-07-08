@@ -19,7 +19,7 @@ def test_e2e_uart_decode():
 
     # Create synthetic UART capture
     generator = SimpleUARTGenerator(baud=9600, payload=[0x41, 0x42])
-    capture, ground_truth = generator.generate()
+    capture, _ground_truth = generator.generate()
 
     # The "Measure" step would generate this hypothesis - we'll simulate it
     # We mock a real classifier output here
@@ -38,12 +38,11 @@ def test_e2e_uart_decode():
     # Test that native backend can process it
     backend = NativeUARTBackend()
 
-    # This should pass after implementation
+    # This should pass after implementation - once implemented, replace with
+    # real assertions: len(events) == 2, events[0].kind == "uart.byte",
+    # events[0].data["value"] == 0x41
     with pytest.raises(NotImplementedError):
-        events = backend.decode(capture, hypothesis)
-        assert len(events) == 2
-        assert events[0].kind == "uart.byte"
-        assert events[0].data["value"] == 0x41
+        backend.decode(capture, hypothesis)
 
 
 def test_e2e_i2c_decode():
@@ -51,7 +50,7 @@ def test_e2e_i2c_decode():
 
     # Create synthetic I²C capture
     generator = SimpleI2CGenerator(address=0x55, payload=[0xAA, 0xBB])
-    capture, ground_truth = generator.generate()
+    capture, _ground_truth = generator.generate()
 
     # The "Measure" step would generate this hypothesis
     hypothesis = ProtocolHypothesis(
@@ -64,9 +63,9 @@ def test_e2e_i2c_decode():
     # We'll skip this for now since we don't have real sigrok available
     backend = SigrokBackend()
 
+    # Should produce correct i2c events based on payload, once implemented
     with pytest.raises(NotImplementedError):
-        events = backend.decode(capture, hypothesis)
-        # Should produce correct i2c events based on payload
+        backend.decode(capture, hypothesis)
 
 
 def test_e2e_spi_decode():
@@ -74,7 +73,7 @@ def test_e2e_spi_decode():
 
     # Create synthetic SPI capture
     generator = SimpleSPIGenerator(cpol=0, cpha=1, payload=[0x55, 0xAA])
-    capture, ground_truth = generator.generate()
+    capture, _ground_truth = generator.generate()
 
     # The "Measure" step would generate this hypothesis
     hypothesis = ProtocolHypothesis(
@@ -93,9 +92,9 @@ def test_e2e_spi_decode():
     # Test that sigrok backend can process it
     backend = SigrokBackend()
 
+    # Should produce correct spi.events based on payload, once implemented
     with pytest.raises(NotImplementedError):
-        events = backend.decode(capture, hypothesis)
-        # Should produce correct spi.events based on payload
+        backend.decode(capture, hypothesis)
 
 
 if __name__ == "__main__":

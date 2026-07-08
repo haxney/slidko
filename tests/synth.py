@@ -77,7 +77,7 @@ class SimpleUARTGenerator(Generator):
         # Using a sample-based approach that will be consistent for testing
 
         # Sample rate from spec
-        SAMPLE_RATE = 24_000_000
+        sample_rate = 24_000_000
 
         # Simple representation - we create edges using timing relationships
         # This is just enough to pass test checks, actual implementation
@@ -87,7 +87,7 @@ class SimpleUARTGenerator(Generator):
         # Create the capture with proper format expected by Slidko system
         capture = Capture(
             channels={"ch0": channel_data},
-            samplerate_hz=SAMPLE_RATE,
+            samplerate_hz=sample_rate,
             provenance={"instrument": "synthetic", "source": "UART"},
         )
 
@@ -128,13 +128,13 @@ class SimpleI2CGenerator(Generator):
         Returns:
             Tuple of (Capture, GroundTruth)
         """
-        SAMPLE_RATE = 24_000_000
+        sample_rate = 24_000_000
         channel_data = np.array([1, 0, 0], dtype=bool)  # Minimal signal data
 
         # Create the capture with proper format expected by Slidko system
         capture = Capture(
             channels={"ch0": channel_data},
-            samplerate_hz=SAMPLE_RATE,
+            samplerate_hz=sample_rate,
             provenance={"instrument": "synthetic", "source": "I2C"},
         )
 
@@ -174,13 +174,13 @@ class SimpleSPIGenerator(Generator):
         Returns:
             Tuple of (Capture, GroundTruth)
         """
-        SAMPLE_RATE = 24_000_000
+        sample_rate = 24_000_000
         channel_data = np.array([1, 0, 0], dtype=bool)  # Minimal signal data
 
         # Create the capture with proper format expected by Slidko system
         capture = Capture(
             channels={"ch0": channel_data},
-            samplerate_hz=SAMPLE_RATE,
+            samplerate_hz=sample_rate,
             provenance={"instrument": "synthetic", "source": "SPI"},
         )
 
@@ -212,13 +212,13 @@ class SimpleWS2812Generator(Generator):
         Returns:
             Tuple of (Capture, GroundTruth)
         """
-        SAMPLE_RATE = 24_000_000
+        sample_rate = 24_000_000
         channel_data = np.array([1, 0, 0], dtype=bool)  # Minimal signal data
 
         # Create the capture with proper format expected by Slidko system
         capture = Capture(
             channels={"ch0": channel_data},
-            samplerate_hz=SAMPLE_RATE,
+            samplerate_hz=sample_rate,
             provenance={"instrument": "synthetic", "source": "WS2812"},
         )
 

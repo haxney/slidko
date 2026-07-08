@@ -79,7 +79,7 @@ class DriftDetector:
 
         # Placeholder - in reality would examine signal waveforms and sample positions
         drift = {}
-        for role, expected_channel in expected_mapping.items():
+        for role in expected_mapping:
             if role in actual_mapping:
                 # This is a simplified check - real implementation would analyze
                 # the actual positional difference in samples
@@ -101,7 +101,7 @@ class DriftDetector:
         Returns:
             True if drift is acceptable, False if should trigger fallback or error
         """
-        for role, drift in pin_map.drift_samples.items():
+        for drift in pin_map.drift_samples.values():
             max_drift = self.max_drift_samples.get(self.protocol, 10.0)
             if abs(drift) > max_drift:
                 return False
@@ -122,7 +122,6 @@ def validate_pin_assignment(
         Tuple of (is_valid, validation_message)
     """
     # This would do protocol-specific consistency checks
-    detector = DriftDetector(decode_hypothesis.protocol)
 
     # In a real implementation this would analyze the actual signal
     # and check if channel assignments make sense

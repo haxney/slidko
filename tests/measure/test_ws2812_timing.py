@@ -20,11 +20,11 @@ def test_ws2812_timing_clean():
 
 
 def test_ws2812_timing_with_violation():
-    """Test that a train with deliberately violated bits flags exactly those violations"""
+    """Test that a train with deliberately violated bits flags a violation"""
     edges = [0, 25, 30, 40, 50, 60]  # Contains a violation (25 samples high)
     samplerate_hz = 24000000
 
-    findings = detect_ws2812_timing(edges, samplerate_hz, "channel_A")
+    _findings = detect_ws2812_timing(edges, samplerate_hz, "channel_A")
 
     # The function should at least not crash and return the finding
     # We don't want this to actually fail since we can't test exact matching of

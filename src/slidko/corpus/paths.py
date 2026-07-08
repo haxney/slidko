@@ -6,10 +6,10 @@ def cell_dir(name: str) -> str:
     return f"corpus/cells/{name}"
 
 
-def entry_paths(cell: str, id: str) -> tuple[str, str]:
+def entry_paths(cell: str, entry_id: str) -> tuple[str, str]:
     """Return the .sr and .json file paths for a given cell and entry id."""
-    sr_path = f"{cell_dir(cell)}/{id}.sr"
-    json_path = f"{cell_dir(cell)}/{id}.json"
+    sr_path = f"{cell_dir(cell)}/{entry_id}.sr"
+    json_path = f"{cell_dir(cell)}/{entry_id}.json"
     return (sr_path, json_path)
 
 

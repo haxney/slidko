@@ -74,8 +74,8 @@ class SigrokBackend(DecodeBackend):
     ) -> list[DecodedEvent]:
         """Decode UART protocol using sigrok."""
         # Build the arguments
-        # TODO(fix-regression-suite): capture has no .filename yet; see _SigrokInputSource
-        args = self._build_uart_args(capture, hypothesis)  # type: ignore[arg-type]
+        # TODO(fix-regression-suite): capture has no .filename; see _SigrokInputSource
+        self._build_uart_args(capture, hypothesis)  # type: ignore[arg-type]
 
         # Execute and parse output (placeholder - actual implementation pending)
         raise NotImplementedError("Sigrok UART decoder not implemented yet")
@@ -85,8 +85,8 @@ class SigrokBackend(DecodeBackend):
     ) -> list[DecodedEvent]:
         """Decode I²C protocol using sigrok."""
         # Build the arguments
-        # TODO(fix-regression-suite): capture has no .filename yet; see _SigrokInputSource
-        args = self._build_i2c_args(capture, hypothesis)  # type: ignore[arg-type]
+        # TODO(fix-regression-suite): capture has no .filename; see _SigrokInputSource
+        self._build_i2c_args(capture, hypothesis)  # type: ignore[arg-type]
 
         # Execute and parse output (placeholder - actual implementation pending)
         raise NotImplementedError("Sigrok I²C decoder not implemented yet")
@@ -96,8 +96,8 @@ class SigrokBackend(DecodeBackend):
     ) -> list[DecodedEvent]:
         """Decode SPI protocol using sigrok."""
         # Build the arguments
-        # TODO(fix-regression-suite): capture has no .filename yet; see _SigrokInputSource
-        args = self._build_spi_args(capture, hypothesis)  # type: ignore[arg-type]
+        # TODO(fix-regression-suite): capture has no .filename; see _SigrokInputSource
+        self._build_spi_args(capture, hypothesis)  # type: ignore[arg-type]
 
         # Execute and parse output (placeholder - actual implementation pending)
         raise NotImplementedError("Sigrok SPI decoder not implemented yet")
@@ -109,8 +109,9 @@ class SigrokBackend(DecodeBackend):
         Build the exact sigrok-cli command line for UART protocol.
 
         Format from design.md confirmed:
-        sigrok-cli -i cap.sr -P uart:rx=D0:baudrate=115200:data_bits=8:parity=none:stop_bits=1 \
-                   -A uart=rx-data --protocol-decoder-samplenum
+        sigrok-cli -i cap.sr \
+            -P uart:rx=D0:baudrate=115200:data_bits=8:parity=none:stop_bits=1 \
+            -A uart=rx-data --protocol-decoder-samplenum
         """
         # Extract UART parameters
         baud = hypothesis.parameters["baud"]
@@ -140,7 +141,8 @@ class SigrokBackend(DecodeBackend):
         Build the exact sigrok-cli command line for I²C protocol.
 
         Format from design.md confirmed:
-        sigrok-cli -i cap.sr -P i2c:scl=D0:sda=D1 -A i2c=addr-data --protocol-decoder-samplenum
+        sigrok-cli -i cap.sr -P i2c:scl=D0:sda=D1 \
+            -A i2c=addr-data --protocol-decoder-samplenum
         """
         scl_channel = hypothesis.channel_assignments["scl"]
         sda_channel = hypothesis.channel_assignments["sda"]
@@ -166,8 +168,9 @@ class SigrokBackend(DecodeBackend):
         Build the exact sigrok-cli command line for SPI protocol.
 
         Format from design.md confirmed:
-        sigrok-cli -i cap.sr -P spi:clk=D0:mosi=D1:miso=D2:cs=D3:cpol=0:cpha=0:wordsize=8 \
-                   -A spi=mosi-data --protocol-decoder-samplenum
+        sigrok-cli -i cap.sr \
+            -P spi:clk=D0:mosi=D1:miso=D2:cs=D3:cpol=0:cpha=0:wordsize=8 \
+            -A spi=mosi-data --protocol-decoder-samplenum
         """
         clk_channel = hypothesis.channel_assignments["clk"]
         mosi_channel = hypothesis.channel_assignments.get("mosi")

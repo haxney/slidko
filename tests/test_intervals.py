@@ -28,7 +28,7 @@ def test_estimate_period_from_intervals():
     edges = [0, 10, 20, 30]
     period = estimate_period_from_intervals(edges)
 
-    assert period == 10.0
+    assert period == pytest.approx(10.0)
 
     # Edge case - too few edges
     edges = [0, 10]
@@ -44,7 +44,7 @@ def test_detect_square_wave_frequency():
     freq = detect_square_wave_frequency(edges, sample_rate_hz=24_000_000)
 
     # Should be 24MHz / 100 samples = 240kHz
-    assert freq == 240000.0
+    assert freq == pytest.approx(240000.0)
 
 
 def test_compute_autocorrelation():

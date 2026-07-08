@@ -17,7 +17,8 @@ def test_edge_chatter_clean_capture():
 
 def test_edge_chatter_with_burst():
     """Test that a capture with injected multi-crossing chatter yields a finding"""
-    # Simulate chatter - multiple edges in quick succession to make 3 fast consecutive intervals
+    # Simulate chatter - multiple edges in quick succession to make 3 fast
+    # consecutive intervals
     # [0, 40, 50, 60, 70, 100]
     # intervals: [40, 10, 10, 10, 30]
     # 3 consecutive fast intervals (intervals 1,2,3) = edges at indices 1,2,3,4

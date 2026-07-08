@@ -34,7 +34,7 @@
 - [x] 5.2 Add a **local** mypy hook (no remote repo): `repo: local`, hook `id: mypy`, `name: mypy`, `entry: .venv/bin/mypy`, `language: system`, `types: [python]`, `pass_filenames: false`. This runs the venv mypy and needs no network
 - [x] 5.3 Confirm every remote repo in the file has an explicit pinned `rev` and that the `ruff-pre-commit` `rev` equals the ruff version pinned in `pyproject.toml` (`v0.15.20`)
 - [x] 5.4 Pre-install hook environments while network is available: `.venv/bin/pre-commit install-hooks`
-- [ ] 5.5 Verify: `.venv/bin/pre-commit run --all-files` exits 0 (run twice; the second run must be clean, proving no hook mutates the committed tree) — **blocked**: 80 pre-existing ruff-lint findings in `src/`/`tests/` (downstream drift, not caused by this change) make the ruff hook fail tree-wide; `ruff-format` and the local `mypy` hook both pass cleanly. See session note below.
+- [x] 5.5 Verify: `.venv/bin/pre-commit run --all-files` exits 0 (run twice; the second run must be clean, proving no hook mutates the committed tree) — all hooks pass cleanly on both runs now that the ruff-lint debt is cleared
 
 ## 6. Firmware C formatter config
 
@@ -45,7 +45,7 @@
 ## 7. CI runs the canonical gate
 
 - [x] 7.1 Edit `.github/workflows/ci.yml`: after `pip install -e '.[dev]'`, replace the separate `ruff check` / `pytest` steps with a single step that creates the venv and runs `make check` (so CI and overnight run byte-identical commands). Keep `actions/checkout` and `setup-python@v4` with Python 3.11
-- [x] 7.2 Verify locally that the CI command path works: from a clean `.venv`, `.venv/bin/pip install -e '.[dev]'` then `make check` exits 0 — install path confirmed clean in a scratch venv; `make check` itself is currently red on the pre-existing ruff-lint debt noted above (not on typecheck, which is now clean)
+- [x] 7.2 Verify locally that the CI command path works: from a clean `.venv`, `.venv/bin/pip install -e '.[dev]'` then `make check` exits 0 — install path confirmed clean in a scratch venv; `make check` itself is still red, but now only on the pre-existing failing tests tracked in `fix-regression-suite` (lint/format/typecheck all pass)
 
 ## 8. Wrap-up
 

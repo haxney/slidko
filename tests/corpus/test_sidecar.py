@@ -34,7 +34,8 @@ CORPUS_EXAMPLE: dict[str, Any] = {
 
 
 def test_sidecar_round_trip():
-    """Test that the CORPUS.md example JSON round-trips through Sidecar.from_json and to_json"""
+    """Test that the CORPUS.md example JSON round-trips through
+    Sidecar.from_json and to_json"""
     sidecar = Sidecar.from_json(CORPUS_EXAMPLE)
     result_json = sidecar.to_json()
 
@@ -60,7 +61,8 @@ def test_sidecar_round_trip():
 
 
 def test_missing_receiver_verdict_validation():
-    """Test that a sidecar dict lacking receiver_verdict fails validate with an error naming the missing field"""
+    """Test that a sidecar dict lacking receiver_verdict fails validate with
+    an error naming the missing field"""
     # Create a sidecar without receiver_verdict
     invalid_sidecar_data = CORPUS_EXAMPLE.copy()
     del invalid_sidecar_data["receiver_verdict"]
@@ -73,7 +75,8 @@ def test_missing_receiver_verdict_validation():
 
 
 def test_referee_validation():
-    """Test that a sidecar with a populated referee block validates (day-one support); a referee of null also validates"""
+    """Test that a sidecar with a populated referee block validates (day-one
+    support); a referee of null also validates"""
     # Test with a populated referee
     sidecar_data_with_referee = CORPUS_EXAMPLE.copy()
     sidecar_data_with_referee["referee"] = {"instrument": "fx2lafw-second"}

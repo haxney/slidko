@@ -20,8 +20,8 @@ CHATTER_FRACTION = 0.25  # EMPIRICAL, n=synthetic-only: intervals below a
 CHATTER_MIN_EDGES = 3  # EMPIRICAL: need a burst, not one fast edge
 
 # Constant for runt pulse detection
-RUNT_MAX_SAMPLES = 2  # EMPIRICAL: 1–2 sample pulses illegal at 24 MS/s
-# for the v1 protocol universe (≤ ~1 MHz symbol rate)
+RUNT_MAX_SAMPLES = 2  # EMPIRICAL: 1-2 sample pulses illegal at 24 MS/s
+# for the v1 protocol universe (<= ~1 MHz symbol rate)
 
 # Constants for WS2812 timing detection
 WS2812_T0H_NS, WS2812_T1H_NS = 400, 800  # Datasheet nominal high times (ns)
@@ -76,8 +76,13 @@ def detect_edge_chatter(
                     start_sample=start_sample,
                     end_sample=end_sample,
                     severity="warn",
-                    summary=f"Detected edge chatter with {count} consecutive fast edges",
-                    escalation="smoke → scope: capture this line with an oscilloscope; expect ringing",
+                    summary=(
+                        f"Detected edge chatter with {count} consecutive fast edges"
+                    ),
+                    escalation=(
+                        "smoke → scope: capture this line with an oscilloscope; "
+                        "expect ringing"
+                    ),
                     evidence={
                         "instances": count,
                         "avg_interval": sum(intervals[start_idx : start_idx + count])
@@ -96,7 +101,7 @@ def detect_edge_chatter(
 
 def detect_runt_pulses(edges: list[int], channel: str) -> list[SmokeFinding]:
     """
-    Detect runt/glitch pulses - pulses of 1–2 samples which are illegal for any symbol.
+    Detect runt/glitch pulses - pulses of 1-2 samples which are illegal for any symbol.
 
     Args:
         edges: List of edge timestamps
@@ -126,7 +131,10 @@ def detect_runt_pulses(edges: list[int], channel: str) -> list[SmokeFinding]:
                 end_sample=end_sample,
                 severity="warn",
                 summary=f"Detected runt pulse of {interval} samples",
-                escalation="smoke → scope: capture this line with an oscilloscope; expect glitch/shorting",
+                escalation=(
+                    "smoke → scope: capture this line with an oscilloscope; "
+                    "expect glitch/shorting"
+                ),
                 evidence={"pulse_samples": interval},
             )
             findings.append(finding)
@@ -141,7 +149,7 @@ def detect_ws2812_timing(
     Detect WS2812 timing violations - bits with high-pulses outside of T0H or T1H specs.
 
     Args:
-        edges: List of edge timestamps (should represent bit transitions with high+low pulses)
+        edges: List of edge timestamps (bit transitions with high+low pulses)
         samplerate_hz: Sampling rate in Hz
         channel: Source channel
 
@@ -158,33 +166,11 @@ def detect_ws2812_timing(
     t1h_samples = WS2812_T1H_NS / sample_ns
     window_samples = WS2812_WINDOW_NS / sample_ns
 
-    # The algorithm processes edges as (e0, e1, e2, e3, e4) representing
-    # bit 0 [e0,e1], bit 1 [e2,e3], etc. where each bit is high-pulse followed by low-pulse
-    # So the first edge represents start of bit 0, second end of bit 0, etc.
-
-    # Process each pair of edges as a "bit", where even indices should be low to high
-    # and odd indices should be high to low of that bit (or vice versa depending on structure).
-    # For simplicity assume 2 edges per bit: [high_edge_start, low_edge_end]
-    # So for n bits we would have 2*n edges.
-
-    # This is a simplified model - the real algorithm needs more careful parsing
+    # This is a simplified model - the real algorithm needs more careful parsing.
+    # Treat edges as [start_bit0_high, start_bit0_low, start_bit1_high, ...]: each
+    # bit is a pair of edges, and its high time is edge[i+1] - edge[i].
     if len(edges) < 4:
         return findings  # Not enough edges to represent at least one full bit
-
-    # A valid WS2812 bit has two edges: high transition, then low transition
-    # So we look at edges in pairs, but process only 'high' edge times which are even indices
-    # The high-time interval can be calculated as: edge[i+1] - edge[i] where i is odd index
-    # Which means for a bit starting at index i, the high pulse is between edges[i] and edges[i+1]
-
-    # Let's assume we start at an edge that marks the beginning of a valid data point.
-    # In WS2812 structure:
-    # Bit 0: [edge0, edge1] - high duration = edge1 - edge0
-    # Bit 1: [edge2, edge3] - high duration = edge3 - edge2
-    # etc. (so odd index = transition from low to high, even index = transition from high to low)
-
-    # But we will treat edges as [start_bit0_high, start_bit0_low, start_bit1_high, start_bit1_low]
-    # For each bit, the high time is computed by:
-    # bit_high_time = (edge[i+1] - edge[i]) where i represents the beginning of a high pulse
 
     num_bits = len(edges) // 2  # Each bit has 2 edges in sequence
     if num_bits < 1:
@@ -204,8 +190,8 @@ def detect_ws2812_timing(
         t1h_max = t1h_samples + window_samples
 
         # Valid bit types:
-        # 0: T0H = 0.4µs = ~9.6 samples (±150 ns)
-        # 1: T1H = 0.8µs = ~19.2 samples (±150 ns)
+        # 0: T0H = 0.4us = ~9.6 samples (+/-150 ns)
+        # 1: T1H = 0.8us = ~19.2 samples (+/-150 ns)
         is_valid_0 = t0h_min <= bit_high_time <= t0h_max
         is_valid_1 = t1h_min <= bit_high_time <= t1h_max
 
@@ -218,7 +204,10 @@ def detect_ws2812_timing(
                 end_sample=edges[i + 1],
                 severity="warn",
                 summary=f"WS2812 timing violation: high={bit_high_time} samples",
-                escalation="smoke → scope: capture this line with an oscilloscope; expect WS2812 timing error",
+                escalation=(
+                    "smoke → scope: capture this line with an oscilloscope; "
+                    "expect WS2812 timing error"
+                ),
                 evidence={"high_samples": bit_high_time, "bit_position": i // 2},
             )
             findings.append(finding)

@@ -12,6 +12,8 @@ This implements the requirements from design.md:
 Uses numpy for efficient signal processing.
 """
 
+import math
+
 import numpy as np
 
 from slidko.capture import Capture
@@ -41,7 +43,6 @@ class NativeUARTBackend(DecodeBackend):
             List of DecodedEvent objects for received bytes
         """
         # Extract required parameters
-        baud = hypothesis.parameters["baud"]
         data_bits = hypothesis.parameters.get("data_bits", 8)
         parity = hypothesis.parameters.get("parity", "none")
         stop_bits = hypothesis.parameters.get("stop_bits", 1.0)
@@ -49,17 +50,13 @@ class NativeUARTBackend(DecodeBackend):
 
         # Check that we have an 8N1 configuration (as per design.md)
         # SBUS requires special handling and should be routed to sigrok backend
-        if parity != "none" or data_bits != 8 or stop_bits != 1.0:
+        if parity != "none" or data_bits != 8 or not math.isclose(stop_bits, 1.0):
             raise ValueError(
                 f"Native UART only supports 8N1. Got: {data_bits}{parity}{stop_bits}"
             )
 
-        # Get the RX channel signal
-        rx_signal = capture.channels[rx_channel]
-        samplerate = capture.samplerate_hz
-
-        # Calculate bit period in samples
-        bit_period_samples = samplerate / baud
+        # Confirm the RX channel exists before decoding
+        _ = capture.channels[rx_channel]
 
         # Find start bits and decode bytes
         events: list[DecodedEvent] = []

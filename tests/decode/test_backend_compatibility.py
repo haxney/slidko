@@ -19,7 +19,7 @@ def test_uart_backend_compatibility():
 
     # Test with simple payload
     generator = SimpleUARTGenerator(baud=9600, payload=[0x41, 0x42])
-    capture, ground_truth = generator.generate()
+    capture, _ground_truth = generator.generate()
 
     # Create hypothesis (what Measure would produce)
     hypothesis = ProtocolHypothesis(
@@ -38,18 +38,14 @@ def test_uart_backend_compatibility():
     native_backend = NativeUARTBackend()
     sigrok_backend = SigrokBackend()
 
-    # These should pass after full implementation
+    # These should pass after full implementation - once implemented, replace
+    # with real assertions comparing native_backend.decode(...) and
+    # sigrok_backend.decode(...) results for equal/equivalent events
     with pytest.raises(NotImplementedError):
-        # Native backend result
-        native_events = native_backend.decode(capture, hypothesis)
+        native_backend.decode(capture, hypothesis)
 
-        # Sigrok backend result (if available) - for this test we expect NotImplementedError
-        sigrok_events = sigrok_backend.decode(capture, hypothesis)
-
-        # In a complete implementation, these would be equal or equivalent
-
-        assert len(native_events) == len(sigrok_events)
-        # More detailed assertions would go here based on actual output
+    with pytest.raises(NotImplementedError):
+        sigrok_backend.decode(capture, hypothesis)
 
 
 if __name__ == "__main__":

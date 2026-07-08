@@ -1,11 +1,10 @@
 import pytest
 
+from slidko.measure.smoke import SmokeFinding
+
 
 # This will fail until we implement the SmokeFinding class
 def test_smoke_finding_dataclass():
-    # Test that SmokeFinding can be imported and has required fields
-    from slidko.measure.smoke import SmokeFinding
-
     # Test creating a SmokeFinding instance
     finding = SmokeFinding(
         check="edge_chatter",
@@ -14,7 +13,9 @@ def test_smoke_finding_dataclass():
         end_sample=200,
         severity="warn",
         summary="Detected edge chatter with 5 instances",
-        escalation="smoke → scope: capture this line with an oscilloscope; expect ringing",
+        escalation=(
+            "smoke → scope: capture this line with an oscilloscope; expect ringing"
+        ),
         evidence={"instances": 5, "avg_interval": 0.1},
     )
 

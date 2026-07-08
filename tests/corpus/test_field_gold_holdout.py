@@ -1,6 +1,7 @@
 def test_field_gold_holdout_guard_scans_for_literal_field_gold():
-    """Test that the guard scans .py files under tests/ and src/ for the literal 'field-gold'
-    outside the allowlist (corpus/paths.py, the guard itself) and fails if found"""
+    """Test that the guard scans .py files under tests/ and src/ for the
+    literal 'field-gold' outside the allowlist (corpus/paths.py, the guard
+    itself) and fails if found"""
 
     # This test is designed to fail initially because we haven't implemented
     # the holdout guard yet. Later when implemented, we'll add temporary

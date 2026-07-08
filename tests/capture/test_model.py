@@ -71,7 +71,7 @@ def test_capture_provenance_fields():
 
     assert capture.provenance["instrument"] == "fx2lafw"
     assert capture.provenance["samplerate_hz"] == samplerate_hz
-    assert capture.provenance["threshold_v"] == 1.8
+    assert capture.provenance["threshold_v"] == pytest.approx(1.8)
 
 
 def test_capture_empty_channels():

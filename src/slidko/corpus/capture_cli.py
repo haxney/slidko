@@ -27,10 +27,10 @@ def run_capture_with_verdict(
         True if successful, False otherwise
     """
     # Capture
-    sr_file_path = instrument_runner("capture")
+    instrument_runner("capture")
 
     # Get receiver verdict
-    verdict_data = verdict_provider()
+    verdict_provider()
 
     # Create a basic sidecar template with minimal info (we'll add more)
     # In a real implementation, this would be more complete
