@@ -40,7 +40,7 @@ def run_sweep(cell_name: str, values: list[float]) -> list[dict[str, Any]]:
     return entries
 
 
-def main():
+def main() -> None:
     """Main sweep entry point."""
     print("Sweep runner not fully implemented in this phase")
 

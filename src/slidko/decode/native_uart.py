@@ -14,6 +14,7 @@ Uses numpy for efficient signal processing.
 
 import numpy as np
 
+from slidko.capture import Capture
 from slidko.decode.backend import DecodeBackend, ProtocolHypothesis
 from slidko.decode.events import DecodedEvent
 
@@ -26,7 +27,9 @@ class NativeUARTBackend(DecodeBackend):
     holds and to provide a sigrok-free path for CI/developer testing.
     """
 
-    def decode(self, capture, hypothesis: ProtocolHypothesis) -> list[DecodedEvent]:
+    def decode(
+        self, capture: Capture, hypothesis: ProtocolHypothesis
+    ) -> list[DecodedEvent]:
         """
         Decode UART signal from a capture using native algorithm.
 
@@ -59,7 +62,7 @@ class NativeUARTBackend(DecodeBackend):
         bit_period_samples = samplerate / baud
 
         # Find start bits and decode bytes
-        events = []
+        events: list[DecodedEvent] = []
 
         # For now, we'll just create a placeholder implementation
         # that shows how this would work - actual UART decoding algorithm

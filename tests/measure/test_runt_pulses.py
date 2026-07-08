@@ -1,6 +1,6 @@
 import pytest
 
-from src.slidko.measure.smoke import detect_runt_pulses
+from slidko.measure.smoke import detect_runt_pulses
 
 
 def test_runt_pulses_clean_capture():

@@ -4,7 +4,7 @@ import pytest
 # This will fail until we implement the SmokeFinding class
 def test_smoke_finding_dataclass():
     # Test that SmokeFinding can be imported and has required fields
-    from src.slidko.measure.smoke import SmokeFinding
+    from slidko.measure.smoke import SmokeFinding
 
     # Test creating a SmokeFinding instance
     finding = SmokeFinding(

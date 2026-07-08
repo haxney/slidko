@@ -44,7 +44,7 @@ def run_capture_with_verdict(
 
 
 # This is the main function that would be used as CLI entry point
-def main():
+def main() -> None:
     """Main CLI entry point - would run actual capture workflow"""
     print("Capture CLI not fully implemented in this phase")
 

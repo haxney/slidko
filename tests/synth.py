@@ -29,7 +29,7 @@ class GroundTruth:
     payload: list[int] | None = None
 
     # Injected faults
-    injected_faults: list[str] = None
+    injected_faults: list[str] | None = None
 
     # Random seed for reproducibility
     seed: int = 0

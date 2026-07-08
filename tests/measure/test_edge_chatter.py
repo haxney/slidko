@@ -1,6 +1,6 @@
 import pytest
 
-from src.slidko.measure.smoke import detect_edge_chatter
+from slidko.measure.smoke import detect_edge_chatter
 
 
 def test_edge_chatter_clean_capture():

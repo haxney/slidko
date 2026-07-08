@@ -14,6 +14,7 @@ Usage:
 
 from dataclasses import dataclass, field
 
+from slidko.capture import Capture
 from slidko.decode.backend import ProtocolHypothesis
 
 
@@ -57,7 +58,10 @@ class DriftDetector:
         self.max_drift_samples = {"uart": 2.0, "i2c": 5.0, "spi": 3.0}
 
     def detect_pin_drift(
-        self, expected_mapping: dict[str, str], actual_mapping: dict[str, str], capture
+        self,
+        expected_mapping: dict[str, str],
+        actual_mapping: dict[str, str],
+        capture: Capture,
     ) -> PinMapping:
         """
         Detect drift and inconsistencies in pin mappings.
@@ -105,7 +109,7 @@ class DriftDetector:
 
 
 def validate_pin_assignment(
-    decode_hypothesis: ProtocolHypothesis, capture
+    decode_hypothesis: ProtocolHypothesis, capture: Capture
 ) -> tuple[bool, str]:
     """
     Validate that the pin assignments are reasonable for this protocol.

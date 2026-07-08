@@ -12,6 +12,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
+from slidko.capture import Capture
+
 from .events import DecodedEvent
 
 
@@ -51,7 +53,9 @@ class DecodeBackend(ABC):
     """
 
     @abstractmethod
-    def decode(self, capture, hypothesis: ProtocolHypothesis) -> list[DecodedEvent]:
+    def decode(
+        self, capture: Capture, hypothesis: ProtocolHypothesis
+    ) -> list[DecodedEvent]:
         """
         Decode a capture using the given protocol hypothesis.
 
@@ -66,5 +70,5 @@ class DecodeBackend(ABC):
 
 # This is only for testing that a backend implements the Protocol interface
 # The actual test will be added in task 2.3
-def test_backend_protocol_compliance():
+def test_backend_protocol_compliance() -> None:
     """Test that any backend satisfies the structural typing of DecodeBackend."""

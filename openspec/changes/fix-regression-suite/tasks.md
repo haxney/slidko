@@ -67,8 +67,38 @@
 - [ ] 8.4 Re-read `phase-5-diagnose-loop/tasks.md` group 2 (validator) the same way
 - [ ] 8.5 Do NOT check a box unless the corresponding test is green in the full-suite run in wrap-up below
 
-## 9. Wrap-up
+## 9. Ruff-lint debt and test-package import fix
 
-- [ ] 9.1 `make check` green
-- [ ] 9.2 `.venv/bin/python -m pytest -q` reports zero failures across the ENTIRE suite (not just touched files) — this is the actual acceptance bar for this change
-- [ ] 9.3 Commit naming the task groups (multiple commits are fine, one per group, per the standing overnight-agent discipline)
+> Surfaced while applying `dev-tooling-gate`: once that change's mypy config
+> went green tree-wide, two more classes of downstream drift showed up. Both
+> predate this task file and are left for this change since it already owns
+> "red suite" / drift cleanup.
+
+- [ ] 9.1 Run `.venv/bin/ruff check .` and fix the ~80 findings across `src/`
+  and `tests/` (long lines, unused variables, `N806` non-lowercase locals,
+  `RUF059` unused-unpacked-variable, `B007` unused loop vars, ambiguous
+  unicode chars, import-private-name, etc.). Note: 9 of these are `PT012`
+  (pytest-raises-with-multiple-statements) in `tests/decode/test_sigrok_backend.py`
+  — these overlap with task group 4's `pytest.raises(NotImplementedError)`
+  scaffolding removal; fix them there, not twice. `float-equality-comparison`
+  findings in `tests/test_intervals.py` need a real look (rounding tolerance
+  or `pytest.approx`), not a blanket ignore.
+- [ ] 9.2 Fix `tests/decode/test_native_uart.py`, `tests/decode/test_e2e.py`,
+  and `tests/decode/test_backend_compatibility.py`: `.venv/bin/python -m pytest`
+  fails at collection with `ModuleNotFoundError: No module named 'tests'` on
+  `from tests.synth import ...`. `tests/` has no `__init__.py` anywhere, so it
+  is not a real package; pytest's default import mode does not add the repo
+  root to `sys.path` for a bare directory. Resolve by either adding
+  `tests/__init__.py` (and confirming no other implicit-namespace-package
+  assumption is now stale) or setting `pythonpath = ["."]` under
+  `[tool.pytest.ini_options]` in `pyproject.toml` — pick whichever also keeps
+  `.venv/bin/mypy`'s `explicit_package_bases`/`mypy_path = "src"` setup
+  (`pyproject.toml` `[tool.mypy]`) working, since that was tuned against the
+  same `tests/synth` ambiguity.
+- [ ] 9.3 Verify: `.venv/bin/ruff check .` exits 0 and `.venv/bin/python -m pytest -q` collects with zero errors
+
+## 10. Wrap-up
+
+- [ ] 10.1 `make check` green
+- [ ] 10.2 `.venv/bin/python -m pytest -q` reports zero failures across the ENTIRE suite (not just touched files) — this is the actual acceptance bar for this change
+- [ ] 10.3 Commit naming the task groups (multiple commits are fine, one per group, per the standing overnight-agent discipline)

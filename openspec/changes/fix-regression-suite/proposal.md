@@ -44,6 +44,18 @@ diagnoses per failure) found three distinct classes of problem, not one:
    by design (SBUS routes through the sigrok backend) — this test is
    checking the wrong backend, not a wrong implementation.
 
+Two more classes of drift surfaced later, while applying `dev-tooling-gate`
+(see that change's session notes): once its mypy config was made to pass
+tree-wide, `ruff check .` turned up ~80 pre-existing findings in `src/` and
+`tests/` (long lines, unused variables, naming, ambiguous unicode, and 9
+`pytest.raises`-with-multiple-statements findings that overlap with problem
+class 1 above), and `pytest -q` fails at collection (`ModuleNotFoundError: No
+module named 'tests'`) importing `tests/synth.py` from three `tests/decode/`
+files, because `tests/` has no `__init__.py` and is not on `sys.path` as a
+package under pytest's default import mode. Both are added to this change's
+task list (group 9) rather than a new change, since this change already owns
+the "red suite" / downstream-drift cleanup.
+
 There is also a recurring architecture gap worth fixing once, in the design,
 rather than patching per-symptom: `narrate/coincidence.py` and
 `narrate/transaction_summary.py` each define their **own local, incompatible
@@ -83,6 +95,8 @@ every field. Both gaps get a single house-style fix applied consistently.
 - Reconcile every touched change's `tasks.md` checkboxes with what is
   actually implemented and passing (several currently read `[x]` for stub
   code) so future runs don't skip work that was never really done.
+- Clean up the ~80 `ruff check` findings in `src/`/`tests/` and fix the
+  `tests`-package import gap so `pytest -q` collects without error.
 
 ## Capabilities
 

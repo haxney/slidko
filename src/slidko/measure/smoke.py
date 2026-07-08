@@ -148,7 +148,7 @@ def detect_ws2812_timing(
     Returns:
         List of SmokeFinding objects for detected timing violations
     """
-    findings = []
+    findings: list[SmokeFinding] = []
 
     # Sample timing calculation: at 24 MHz, 1 sample = ~41.67 ns
     sample_ns = 1e9 / samplerate_hz

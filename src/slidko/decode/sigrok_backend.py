@@ -7,11 +7,26 @@ This implements the requirements from design.md:
 - exact, verified invocation from design.md
 """
 
+from typing import Protocol
+
+from slidko.capture import Capture
 from slidko.decode.backend import DecodeBackend, ProtocolHypothesis
 from slidko.decode.events import DecodedEvent
 
 # Default path for libsigrokdecode decoders - adjust for system as needed
 DEFAULT_DECODER_PATH = "/usr/share/libsigrokdecode/decoders/"
+
+
+class _SigrokInputSource(Protocol):
+    """Minimal shape needed to build a sigrok-cli invocation.
+
+    `Capture` (src/slidko/capture/__init__.py) has no `filename` field yet —
+    resolving the capture-to-.sr-path handoff is tracked in the
+    fix-regression-suite change. This narrower Protocol lets the arg-builders
+    stay type-checked without preempting that design decision.
+    """
+
+    filename: str
 
 
 class SigrokBackend(DecodeBackend):
@@ -31,7 +46,9 @@ class SigrokBackend(DecodeBackend):
         """
         self.decoder_path = decoder_path
 
-    def decode(self, capture, hypothesis: ProtocolHypothesis) -> list[DecodedEvent]:
+    def decode(
+        self, capture: Capture, hypothesis: ProtocolHypothesis
+    ) -> list[DecodedEvent]:
         """
         Decode a capture using sigrok subprocess backend.
 
@@ -53,36 +70,41 @@ class SigrokBackend(DecodeBackend):
             raise ValueError(f"Unsupported protocol {hypothesis.protocol}")
 
     def _decode_uart(
-        self, capture, hypothesis: ProtocolHypothesis
+        self, capture: Capture, hypothesis: ProtocolHypothesis
     ) -> list[DecodedEvent]:
         """Decode UART protocol using sigrok."""
         # Build the arguments
-        args = self._build_uart_args(capture, hypothesis)
+        # TODO(fix-regression-suite): capture has no .filename yet; see _SigrokInputSource
+        args = self._build_uart_args(capture, hypothesis)  # type: ignore[arg-type]
 
         # Execute and parse output (placeholder - actual implementation pending)
         raise NotImplementedError("Sigrok UART decoder not implemented yet")
 
     def _decode_i2c(
-        self, capture, hypothesis: ProtocolHypothesis
+        self, capture: Capture, hypothesis: ProtocolHypothesis
     ) -> list[DecodedEvent]:
         """Decode I²C protocol using sigrok."""
         # Build the arguments
-        args = self._build_i2c_args(capture, hypothesis)
+        # TODO(fix-regression-suite): capture has no .filename yet; see _SigrokInputSource
+        args = self._build_i2c_args(capture, hypothesis)  # type: ignore[arg-type]
 
         # Execute and parse output (placeholder - actual implementation pending)
         raise NotImplementedError("Sigrok I²C decoder not implemented yet")
 
     def _decode_spi(
-        self, capture, hypothesis: ProtocolHypothesis
+        self, capture: Capture, hypothesis: ProtocolHypothesis
     ) -> list[DecodedEvent]:
         """Decode SPI protocol using sigrok."""
         # Build the arguments
-        args = self._build_spi_args(capture, hypothesis)
+        # TODO(fix-regression-suite): capture has no .filename yet; see _SigrokInputSource
+        args = self._build_spi_args(capture, hypothesis)  # type: ignore[arg-type]
 
         # Execute and parse output (placeholder - actual implementation pending)
         raise NotImplementedError("Sigrok SPI decoder not implemented yet")
 
-    def _build_uart_args(self, capture, hypothesis: ProtocolHypothesis) -> list[str]:
+    def _build_uart_args(
+        self, capture: _SigrokInputSource, hypothesis: ProtocolHypothesis
+    ) -> list[str]:
         """
         Build the exact sigrok-cli command line for UART protocol.
 
@@ -111,7 +133,9 @@ class SigrokBackend(DecodeBackend):
 
         return args
 
-    def _build_i2c_args(self, capture, hypothesis: ProtocolHypothesis) -> list[str]:
+    def _build_i2c_args(
+        self, capture: _SigrokInputSource, hypothesis: ProtocolHypothesis
+    ) -> list[str]:
         """
         Build the exact sigrok-cli command line for I²C protocol.
 
@@ -135,7 +159,9 @@ class SigrokBackend(DecodeBackend):
 
         return args
 
-    def _build_spi_args(self, capture, hypothesis: ProtocolHypothesis) -> list[str]:
+    def _build_spi_args(
+        self, capture: _SigrokInputSource, hypothesis: ProtocolHypothesis
+    ) -> list[str]:
         """
         Build the exact sigrok-cli command line for SPI protocol.
 

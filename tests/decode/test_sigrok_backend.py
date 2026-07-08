@@ -10,7 +10,11 @@ This tests requirements from design.md:
 import pytest
 
 from slidko.decode.backend import ProtocolHypothesis
-from slidko.decode.sigrok_backend import SigrokBackend
+from slidko.decode.sigrok_backend import (
+    SigrokBackend,
+    _parse_i2c_output,
+    _parse_uart_output,
+)
 
 
 def test_sigrok_uart_args_building():
@@ -142,12 +146,9 @@ def test_sigrok_uart_stdout_parsing():
         "0.014567 0x43",  # Byte C
     ]
 
-    # Create backend instance
-    backend = SigrokBackend()
-
     # This should fail before implementation
     with pytest.raises(NotImplementedError):
-        events = backend._parse_uart_output(stdout_lines)
+        events = _parse_uart_output(stdout_lines)
         assert len(events) == 3
         assert events[0].kind == "uart.byte"
         assert events[0].data["value"] == 0x41
@@ -164,12 +165,9 @@ def test_sigrok_i2c_stdout_parsing():
         "0.003567 STOP",
     ]
 
-    # Create backend instance
-    backend = SigrokBackend()
-
     # This should fail before implementation
     with pytest.raises(NotImplementedError):
-        events = backend._parse_i2c_output(stdout_lines)
+        events = _parse_i2c_output(stdout_lines)
         assert len(events) >= 2  # Should have at least address and data
         # Add more specific assertions as parsing is completed
 

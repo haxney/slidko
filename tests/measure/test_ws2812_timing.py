@@ -1,6 +1,6 @@
 import pytest
 
-from src.slidko.measure.smoke import detect_ws2812_timing
+from slidko.measure.smoke import detect_ws2812_timing
 
 
 def test_ws2812_timing_clean():

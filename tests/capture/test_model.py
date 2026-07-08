@@ -46,13 +46,13 @@ def test_capture_immutability():
 
     # These should raise AttributeError since Capture is immutable
     with pytest.raises(AttributeError):
-        capture.channels = {"ch2": np.array([False, True, False], dtype=bool)}
+        capture.channels = {"ch2": np.array([False, True, False], dtype=bool)}  # type: ignore[misc]
 
     with pytest.raises(AttributeError):
-        capture.samplerate_hz = 12_000_000
+        capture.samplerate_hz = 12_000_000  # type: ignore[misc]
 
     with pytest.raises(AttributeError):
-        capture.provenance = {"instrument": "different"}
+        capture.provenance = {"instrument": "different"}  # type: ignore[misc]
 
 
 def test_capture_provenance_fields():

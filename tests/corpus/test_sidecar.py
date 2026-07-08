@@ -1,7 +1,9 @@
+from typing import Any
+
 from slidko.corpus.sidecar import Sidecar
 
 # Test data from docs/CORPUS.md
-CORPUS_EXAMPLE = {
+CORPUS_EXAMPLE: dict[str, Any] = {
     "id": "cell-ws2812-cat6-len/entry-0042",
     "capture_file": "entry-0042.sr",
     "instrument": {

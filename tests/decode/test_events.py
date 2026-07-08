@@ -94,7 +94,7 @@ def test_decoded_event_immutable():
 
     # This should raise an AttributeError
     with pytest.raises(AttributeError):
-        event.kind = "new.kind"
+        event.kind = "new.kind"  # type: ignore[misc]
 
 
 if __name__ == "__main__":
