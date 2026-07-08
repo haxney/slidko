@@ -8,18 +8,18 @@
 
 ## 1. Instruction schema
 
-- [ ] 1.1 Write failing tests in `tests/diagnose/test_instruction.py`: `Instruction` frozen dataclass with all fields in design.md; `Instruction`↔JSON round-trips; `expected_outcome_per_hypothesis` is a dict
-- [ ] 1.2 Implement `src/slidko/diagnose/instruction.py`; tests green
+- [x] 1.1 Write failing tests in `tests/diagnose/test_instruction.py`: `Instruction` frozen dataclass with all fields in design.md; `Instruction`↔JSON round-trips; `expected_outcome_per_hypothesis` is a dict
+- [x] 1.2 Implement `src/slidko/diagnose/instruction.py`; tests green
 
 ## 2. Schema + citation validator (LLM-free)
 
 - [ ] 2.1 Write failing tests in `tests/diagnose/test_validate.py` using CANNED instruction dicts (no LLM): (a) missing `expected_outcome_per_hypothesis` → field-level error; (b) pad-level claim ("clip TP7") with no citation and no unknown flag → rejected; (c) dangling citation (`doc-id#anchor` not in retrieval set) → rejected; (d) empty `hazard_notes` on a placement instruction → rejected; (e) valid instruction → accepted
-- [ ] 2.2 Implement `is_pad_level_claim(instruction) -> bool` per design.md predicate; unit-test it against canned placement vs twiddle instructions
+- [x] 2.2 Implement `is_pad_level_claim(instruction) -> bool` per design.md predicate; unit-test it against canned placement vs twiddle instructions
 - [ ] 2.3 Implement `validate_instruction(instruction, retrieval) -> list[ValidationError]` covering rules 1–6 in design.md; tests green (all run offline)
 
 ## 3. Accessibility filter
 
-- [ ] 3.1 Write failing test: a canned instruction to needle-probe a 0.4 mm-pitch IC pad on a powered board (`power_state="on"`) → rejected with an accessibility-filter error; the same probe on an unpowered board or on a connector/test-point → accepted
+- [x] 3.1 Write failing test: a canned instruction to needle-probe a 0.4 mm-pitch IC pad on a powered board (`power_state="on"`) → rejected with an accessibility-filter error; the same probe on an unpowered board or on a connector/test-point → accepted
 - [ ] 3.2 Implement the IC-pin classifier + `MIN_PROBE_PITCH_MM = 0.5` named constant and wire it into the validator; tests green
 
 ## 4. Librarian retrieval (fixture-backed, offline)

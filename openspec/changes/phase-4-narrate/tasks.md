@@ -22,8 +22,8 @@
 
 ## 4. Cross-channel coincidence
 
-- [ ] 4.1 Write failing test: a NAK event on one channel and a `SmokeFinding` on another within the coincidence window yield a single `coincidence` assertion naming both channels and the time delta in real units; events outside the window do NOT coincide
-- [ ] 4.2 Implement `detect_coincidences(events, findings, samplerate_hz)` with `COINCIDENCE_WINDOW_SAMPLES` derived from a named time window; tests green
+- [x] 4.1 Write failing test: a NAK event on one channel and a `SmokeFinding` on another within the coincidence window yield a single `coincidence` assertion naming both channels and the time delta in real units; events outside the window do NOT coincide
+- [x] 4.2 Implement `detect_coincidences(events, findings, samplerate_hz)` with `COINCIDENCE_WINDOW_SAMPLES` derived from a named time window; tests green
 
 ## 5. Receiver-rule caveat (the killer case)
 

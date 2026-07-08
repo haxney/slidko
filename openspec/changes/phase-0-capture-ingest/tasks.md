@@ -2,13 +2,13 @@
 
 ## 1. Capture container
 
-- [ ] 1.1 Write failing tests for `Capture` dataclass: construction, immutability, provenance fields (instrument, samplerate_hz, threshold_v)
-- [ ] 1.2 Implement `Capture` in `src/slidko/capture/__init__.py` (or `capture/model.py`); tests green
+- [x] 1.1 Write failing tests for `Capture` dataclass: construction, immutability, provenance fields (instrument, samplerate_hz, threshold_v)
+- [x] 1.2 Implement `Capture` in `src/slidko/capture/__init__.py` (or `capture/model.py`); tests green
 
 ## 2. .sr writer + reader (round trip first)
 
 - [ ] 2.1 Write failing round-trip test: synthetic asymmetric per-channel bool arrays -> `write_sr` -> `read_sr` -> bit-exact equality including samplerate, channel names, provenance
-- [ ] 2.2 Implement `write_sr` in `src/slidko/capture/srfile.py` (zip: `metadata` INI + packed `logic-1-1` chunk, unitsize from channel count)
+- [x] 2.2 Implement `write_sr` in `src/slidko/capture/srfile.py` (zip: `metadata` INI + packed `logic-1-1` chunk, unitsize from channel count)
 - [ ] 2.3 Implement `read_sr`: parse metadata, unpack chunks via `np.unpackbits`, slice to channel count; round-trip test green
 - [ ] 2.4 Write failing test for multi-chunk files (write fixture with data split across `logic-1-1`/`logic-1-2`); implement chunk-ordered reassembly; green
 - [ ] 2.5 Write failing test for non-8-multiple channel counts (3 channels); implement padding-bit discard; green

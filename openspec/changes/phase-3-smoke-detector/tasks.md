@@ -8,23 +8,23 @@
 
 ## 1. Finding schema
 
-- [ ] 1.1 Write failing tests in `tests/measure/test_smoke_finding.py`: `SmokeFinding` frozen dataclass with `check, channel, start_sample, end_sample, severity, summary, escalation, evidence`; severity ∈ {info, warn, smoke}
-- [ ] 1.2 Implement `SmokeFinding` in `src/slidko/measure/smoke.py` per design.md; tests green
+- [x] 1.1 Write failing tests in `tests/measure/test_smoke_finding.py`: `SmokeFinding` frozen dataclass with `check, channel, start_sample, end_sample, severity, summary, escalation, evidence`; severity ∈ {info, warn, smoke}
+- [x] 1.2 Implement `SmokeFinding` in `src/slidko/measure/smoke.py` per design.md; tests green
 
 ## 2. Edge chatter check
 
-- [ ] 2.1 Write failing test: a clean square wave / clean protocol capture yields NO chatter finding; a capture with injected multi-crossing chatter (Phase 1 glitch injection) yields a finding whose window covers the injected burst
-- [ ] 2.2 Implement `detect_edge_chatter(edges, t_bit, channel)` using `CHATTER_FRACTION`/`CHATTER_MIN_EDGES` named constants (doc-commented EMPIRICAL) per design.md; tests green
+- [x] 2.1 Write failing test: a clean square wave / clean protocol capture yields NO chatter finding; a capture with injected multi-crossing chatter (Phase 1 glitch injection) yields a finding whose window covers the injected burst
+- [x] 2.2 Implement `detect_edge_chatter(edges, t_bit, channel)` using `CHATTER_FRACTION`/`CHATTER_MIN_EDGES` named constants (doc-commented EMPIRICAL) per design.md; tests green
 
 ## 3. Runt / glitch check
 
-- [ ] 3.1 Write failing test: clean captures yield no runt finding; a capture with an injected 1–2-sample glitch yields a runt finding windowed on the glitch
-- [ ] 3.2 Implement `detect_runt_pulses(edges, channel)` using `RUNT_MAX_SAMPLES`; tests green
+- [x] 3.1 Write failing test: clean captures yield no runt finding; a capture with an injected 1–2-sample glitch yields a runt finding windowed on the glitch
+- [x] 3.2 Implement `detect_runt_pulses(edges, channel)` using `RUNT_MAX_SAMPLES`; tests green
 
 ## 4. WS2812 timing-window violation (exact)
 
 - [ ] 4.1 Write failing test using the Phase 1 WS2812 generator: a spec-exact train yields no timing finding; a train with deliberately violated bits flags EXACTLY the injected-fault bit indices (index-for-index against the generator's fault label)
-- [ ] 4.2 Implement `detect_ws2812_timing(edges, samplerate_hz, channel)`: derive T0H/T1H ± windows in samples from `WS2812_T0H_NS=400`, `WS2812_T1H_NS=800`, `WS2812_WINDOW_NS=150` and the capture samplerate (do NOT hardcode sample counts); a bit whose high-time falls in neither window is a violation; tests green
+- [x] 4.2 Implement `detect_ws2812_timing(edges, samplerate_hz, channel)`: derive T0H/T1H ± windows in samples from `WS2812_T0H_NS=400`, `WS2812_T1H_NS=800`, `WS2812_WINDOW_NS=150` and the capture samplerate (do NOT hardcode sample counts); a bit whose high-time falls in neither window is a violation; tests green
 - [ ] 4.3 Verify exactness: assert the flagged bit set equals the injected-fault set with no extras and no misses
 
 ## 5. Protocol incoherence check
