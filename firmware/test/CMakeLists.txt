@@ -7,7 +7,7 @@ add_executable(test_protocol
 )
 
 # Link only protocol layer (no SDK headers)
-target_include_directories(test_protocol PRIVATE 
+target_include_directories(test_protocol PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/protocol
     ${CMAKE_CURRENT_SOURCE_DIR}/../src
 )

@@ -1,30 +1,9 @@
-from dataclasses import dataclass
-
+from slidko.decode.events import DecodedEvent
+from slidko.measure.smoke import SmokeFinding
 from slidko.narrate.model import Assertion, Evidence
 
 # Constants
-COINCIDENCE_WINDOW_SAMPLES = 5000  # 5ms at 1MHz sample rate (arbitrary for demo)
-
-
-@dataclass(frozen=True)
-class DecodedEvent:
-    """Decoded event from Phase 2"""
-
-    kind: str
-    address: int
-    is_nak: bool = False
-    channel: int = 0
-    sample: int = 0
-    # Other fields would be here in reality
-
-
-@dataclass(frozen=True)
-class SmokeFinding:
-    """Smoke finding from Phase 3"""
-
-    channel: int
-    sample: int
-    # Other fields would be here in reality
+COINCIDENCE_WINDOW_US = 100  # 100 microseconds window for coincidence detection
 
 
 def detect_coincidences(
@@ -46,19 +25,22 @@ def detect_coincidences(
     if not events or not findings:
         return assertions
 
+    # Compute window size in samples based on sample rate
+    window_samples = COINCIDENCE_WINDOW_US * samplerate_hz // 1_000_000
+
     # For demonstration, let's implement a basic coincidence detection
     # In a real implementation, we would properly correlate events and findings
     for event in events:
         if event.kind == "i2c.nak":  # Only look at NAK events
             for finding in findings:
                 # Calculate time delta in seconds
-                sample_delta = abs(event.sample - finding.sample)
+                sample_delta = abs(event.start_sample - finding.start_sample)
                 time_delta_seconds = sample_delta / samplerate_hz
 
                 # Check if within coincidence window (in samples)
-                if sample_delta <= COINCIDENCE_WINDOW_SAMPLES:
+                if sample_delta <= window_samples:
                     # Create evidence with event and finding indices
-                    evidence_indices = (event.sample, finding.sample)
+                    evidence_indices = (event.start_sample, finding.start_sample)
 
                     # Create time delta text
                     if (
@@ -85,17 +67,3 @@ def detect_coincidences(
                     assertions.append(assertion)
 
     return assertions
-
-
-# Test example
-if __name__ == "__main__":
-    events = [
-        DecodedEvent(kind="i2c.nak", address=0x68, channel=0, sample=100),
-    ]
-    findings = [
-        SmokeFinding(channel=1, sample=105),
-    ]
-
-    results = detect_coincidences(events, findings, 1000000)
-    for result in results:
-        print(f"Coincidence: {result.text}")

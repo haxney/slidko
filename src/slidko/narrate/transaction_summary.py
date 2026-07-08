@@ -1,18 +1,6 @@
-from dataclasses import dataclass
-
+from slidko.decode.events import DecodedEvent
 from slidko.narrate.address_book import lookup
 from slidko.narrate.model import Assertion, Evidence
-
-
-# This is a simplified version of DecodedEvent for testing purposes
-@dataclass(frozen=True)
-class DecodedEvent:
-    """Decoded event from Phase 2"""
-
-    kind: str
-    address: int
-    is_nak: bool = False
-    # Other fields would be here in reality
 
 
 def summarize_transactions(events: list[DecodedEvent]) -> list[Assertion]:
@@ -28,55 +16,66 @@ def summarize_transactions(events: list[DecodedEvent]) -> list[Assertion]:
     Returns:
         List of Assertion objects with kind="transaction.summary"
     """
-    assertions = []
+    assertions: list[Assertion] = []
 
-    # Simple test/placeholder function - this will be expanded in the implementation
     if not events:
-        return []
+        return assertions
 
-    # Look for an i2c.start event with address 0x68 to demonstrate the concept
-    start_events = [
-        i for i, e in enumerate(events) if e.kind == "i2c.start" and e.address == 0x68
-    ]
-    if start_events:
-        transaction_count = len(start_events)
+    # Group events by address
+    address_events: dict[int, list[DecodedEvent]] = {}
+    for event in events:
+        addr = event.data.get("address", None)
+        if addr is not None:
+            if addr not in address_events:
+                address_events[addr] = []
+            address_events[addr].append(event)
 
-        # Count NAKs - very basic check
-        nak_count = sum(1 for e in events if e.kind == "i2c.nak" and e.address == 0x68)
+    # Process each address group
+    for addr, addr_events in address_events.items():
+        # Look for start events to count transactions
+        start_events = [i for i, e in enumerate(addr_events) if e.kind == "i2c.start"]
 
-        # Get candidates for this address
-        candidates = lookup(0x68)
+        if start_events:
+            transaction_count = len(start_events)
 
-        # Create a readable part info string
-        if candidates:
-            part_info = ", ".join([
-                c["part"] for c in candidates[:3]
-            ])  # Limit to first 3
-            if len(candidates) > 3:
-                part_info += " (and more)"
-        else:
-            part_info = "unknown device"
+            # Count NAKs for this address
+            nak_count = sum(1 for e in addr_events if e.kind == "i2c.nak")
 
-        # Create the summary text
-        text_parts = [f"{transaction_count} transactions to address 0x68"]
-        if nak_count > 0:
-            text_parts.append(f"with {nak_count} NAK{'s' if nak_count != 1 else ''}")
-        text_parts.append(f"({part_info})")
+            # Get candidates for this address
+            candidates = lookup(addr)
 
-        text = " ".join(text_parts)
+            # Create a readable part info string
+            if candidates:
+                part_info = ", ".join([
+                    c["part"] for c in candidates[:3]
+                ])  # Limit to first 3
+                if len(candidates) > 3:
+                    part_info += " (and more)"
+            else:
+                part_info = "unknown device"
 
-        # Create evidence referencing the relevant event indices
-        evidence = Evidence(event_indices=tuple(start_events))
+            # Create the summary text
+            text_parts = [f"{transaction_count} transactions to address 0x{addr:02x}"]
+            if nak_count > 0:
+                text_parts.append(
+                    f"with {nak_count} NAK{'s' if nak_count != 1 else ''}"
+                )
+            text_parts.append(f"({part_info})")
 
-        # Create and add assertion
-        assertion = Assertion(
-            kind="transaction.summary",
-            text=text,
-            evidence=evidence,
-            confidence=0.9,  # High confidence for straightforward summaries
-        )
+            text = " ".join(text_parts)
 
-        assertions.append(assertion)
+            # Create evidence referencing the relevant event indices
+            evidence = Evidence(event_indices=tuple(start_events))
+
+            # Create and add assertion
+            assertion = Assertion(
+                kind="transaction.summary",
+                text=text,
+                evidence=evidence,
+                confidence=0.9,  # High confidence for straightforward summaries
+            )
+
+            assertions.append(assertion)
 
     return assertions
 
@@ -84,15 +83,4 @@ def summarize_transactions(events: list[DecodedEvent]) -> list[Assertion]:
 # Basic test of function
 if __name__ == "__main__":
     # Simple example to demonstrate functionality
-    events = [
-        DecodedEvent(kind="i2c.start", address=0x68),
-        DecodedEvent(kind="i2c.data", address=0x68),
-        DecodedEvent(kind="i2c.stop", address=0x68),
-        DecodedEvent(kind="i2c.start", address=0x68),
-        DecodedEvent(kind="i2c.nak", address=0x68),
-        DecodedEvent(kind="i2c.stop", address=0x68),
-    ]
-
-    results = summarize_transactions(events)
-    for result in results:
-        print(f"Assertion: {result.text}")
+    pass

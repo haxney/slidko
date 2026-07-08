@@ -1,10 +1,8 @@
 import unittest
 
-from slidko.narrate.coincidence import (
-    DecodedEvent,
-    SmokeFinding,
-    detect_coincidences,
-)
+from slidko.decode.events import DecodedEvent as CanonicalDecodedEvent
+from slidko.measure.smoke import SmokeFinding as CanonicalSmokeFinding
+from slidko.narrate.coincidence import detect_coincidences
 
 # Test the coincidence detection functionality
 
@@ -14,8 +12,23 @@ class TestCoincidence(unittest.TestCase):
         """A NAK on one channel and a SmokeFinding on another, within the
         coincidence window, yield a single coincidence assertion naming both
         channels and the time delta in real units."""
-        nak_event = DecodedEvent(kind="i2c.nak", address=0x68, channel=0, sample=100)
-        finding = SmokeFinding(channel=1, sample=105)  # Within coincidence window
+        nak_event = CanonicalDecodedEvent(
+            kind="i2c.nak",
+            start_sample=100,
+            end_sample=105,
+            data={"address": 0x68},
+            channel="0",
+        )
+        finding = CanonicalSmokeFinding(
+            check="timing_violation",
+            channel="1",
+            start_sample=105,
+            end_sample=110,
+            severity="warn",
+            summary="Test timing violation",
+            escalation="smoke → scope: test",
+            evidence={},
+        )  # Within coincidence window
 
         results = detect_coincidences([nak_event], [finding], 1_000_000)
         coincidence_assertions = [a for a in results if a.kind == "coincidence"]
@@ -23,8 +36,23 @@ class TestCoincidence(unittest.TestCase):
 
     def test_non_coincident_events_do_not_coincide(self):
         """events outside the window do NOT coincide"""
-        nak_event = DecodedEvent(kind="i2c.nak", address=0x68, channel=0, sample=100)
-        finding = SmokeFinding(channel=1, sample=1000)  # Outside coincidence window
+        nak_event = CanonicalDecodedEvent(
+            kind="i2c.nak",
+            start_sample=100,
+            end_sample=105,
+            data={"address": 0x68},
+            channel="0",
+        )
+        finding = CanonicalSmokeFinding(
+            check="timing_violation",
+            channel="1",
+            start_sample=1000,
+            end_sample=1005,
+            severity="warn",
+            summary="Test timing violation",
+            escalation="smoke → scope: test",
+            evidence={},
+        )  # Outside coincidence window
 
         results = detect_coincidences([nak_event], [finding], 1_000_000)
         coincidence_assertions = [a for a in results if a.kind == "coincidence"]

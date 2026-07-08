@@ -5,7 +5,6 @@ field-gold/ outside of an allowlist, failing the build if any are found.
 """
 
 import os
-import re
 
 # Allowlist of files that are permitted to reference field-gold/
 ALLOWLIST = [
@@ -40,11 +39,11 @@ def scan_for_field_gold_references() -> list[str]:
                         continue
 
                     # Check if the file contains "field-gold"
-                    with open(filepath) as f:
+                    with open(filepath, encoding="utf-8") as f:
                         content = f.read()
 
                         # Look for literal "field-gold" references
-                        if re.search(r"field-gold", content):
+                        if r"field-gold" in content:
                             forbidden_files.append(relative_path)
 
     return forbidden_files

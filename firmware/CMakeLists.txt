@@ -41,8 +41,8 @@ else()
 endif()
 
 # Link the firmware to protocol sources only (for separation)
-target_link_libraries(exerciser-firmware 
-    pico-usb 
+target_link_libraries(exerciser-firmware
+    pico-usb
     pico-pio
     pico-blinky
 )

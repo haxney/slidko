@@ -13,7 +13,7 @@ int e9_policy_check(const command_t* cmd, uint8_t e9_affected) {
         // Return error indicating E9 unavailable for this command
         return -1; // Blocked by E9 policy
     }
-    
+
     // Default: allow the command
     return 0;
 }

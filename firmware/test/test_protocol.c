@@ -52,11 +52,11 @@ int serialize_response(const response_t* resp, char* output_buffer, size_t buffe
 void test_parse_info_command() {
     const char* input = "{\"id\":42,\"cmd\":\"info\"}";
     command_t cmd;
-    
+
     int result = parse_command(input, &cmd);
     // This test will fail initially (as required by task 2.1)
     assert(result != 0); // Should fail initially
-    
+
     printf("Test parse_info_command passed (failed as expected)\n");
 }
 
@@ -64,11 +64,11 @@ void test_parse_info_command() {
 void test_parse_dshot_command() {
     const char* input = "{\"id\":123,\"cmd\":\"dshot\",\"pin\":5,\"rate\":600,\"value\":1000,\"repeat\":2}";
     command_t cmd;
-    
+
     int result = parse_command(input, &cmd);
     // This test will fail initially (as required by task 2.1)
     assert(result != 0); // Should fail initially
-    
+
     printf("Test parse_dshot_command passed (failed as expected)\n");
 }
 
@@ -76,11 +76,11 @@ void test_parse_dshot_command() {
 void test_parse_malformed_json() {
     const char* input = "{\"id\":42,\"cmd\":\"info\""; // Missing closing brace
     command_t cmd;
-    
+
     int result = parse_command(input, &cmd);
     // This test will fail initially (as required by task 2.1)
     assert(result != 0); // Should fail initially
-    
+
     printf("Test parse_malformed_json passed (failed as expected)\n");
 }
 
@@ -88,12 +88,12 @@ void test_parse_malformed_json() {
 void test_dispatch_command_response() {
     const char* input = "{\"id\":42,\"cmd\":\"info\"}";
     command_t cmd;
-    
+
     int parse_result = parse_command(input, &cmd);
-    
+
     // For now, we're testing the contract - this will fail as the parser isn't implemented
     assert(parse_result != 0); // Should fail initially since we haven't implemented parsing
-    
+
     printf("Test dispatch_command_response passed (failed as expected)\n");
 }
 
@@ -101,23 +101,23 @@ void test_dispatch_command_response() {
 void test_unparseable_line() {
     const char* input = "this is not valid json";
     command_t cmd;
-    
+
     int parse_result = parse_command(input, &cmd);
     // This should fail to parse
     assert(parse_result != 0); // Should still fail initially
-    
+
     printf("Test unparseable_line passed (failed as expected)\n");
 }
 
 int main() {
     printf("Running protocol tests (expecting failures)...\n");
-    
+
     test_parse_info_command();
     test_parse_dshot_command();
     test_parse_malformed_json();
     test_dispatch_command_response();
     test_unparseable_line();
-    
+
     printf("All tests run - expecting failures initially!\n");
     return 0;
 }
