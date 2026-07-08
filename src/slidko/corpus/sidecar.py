@@ -69,7 +69,7 @@ class Sidecar:
     receiver: Receiver
     protocol: Protocol
     fault_injected: FaultInjected
-    receiver_verdict: ReceiverVerdict
+    receiver_verdict: ReceiverVerdict | None = None
     sweep_cell: SweepCell | None = None
     referee: dict[str, Any] | None = None
 
@@ -90,7 +90,9 @@ class Sidecar:
         receiver = Receiver(**data["receiver"])
         protocol = Protocol(**data["protocol"])
         fault_injected = FaultInjected(**fault_injected_data)
-        receiver_verdict = ReceiverVerdict(**data["receiver_verdict"])
+        receiver_verdict = None
+        if data.get("receiver_verdict") is not None:
+            receiver_verdict = ReceiverVerdict(**data["receiver_verdict"])
 
         # Handle optional fields
         sweep_cell = None

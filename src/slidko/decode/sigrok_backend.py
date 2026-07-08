@@ -7,26 +7,28 @@ This implements the requirements from design.md:
 - exact, verified invocation from design.md
 """
 
-from typing import Protocol
+import re
+import subprocess
+import tempfile
+from pathlib import Path
+from typing import Any
 
 from slidko.capture import Capture
+from slidko.capture.srfile import write_sr
 from slidko.decode.backend import DecodeBackend, ProtocolHypothesis
 from slidko.decode.events import DecodedEvent
 
 # Default path for libsigrokdecode decoders - adjust for system as needed
 DEFAULT_DECODER_PATH = "/usr/share/libsigrokdecode/decoders/"
 
-
-class _SigrokInputSource(Protocol):
-    """Minimal shape needed to build a sigrok-cli invocation.
-
-    `Capture` (src/slidko/capture/__init__.py) has no `filename` field yet —
-    resolving the capture-to-.sr-path handoff is tracked in the
-    fix-regression-suite change. This narrower Protocol lets the arg-builders
-    stay type-checked without preempting that design decision.
-    """
-
-    filename: str
+_UART_LINE_RE = re.compile(r"^(\d+)-(\d+) uart-1: ([0-9A-Fa-f]+)$")
+_I2C_LINE_RE = re.compile(r"^(\d+)-(\d+) i2c-1: (.+)$")
+# EMPIRICAL, unconfirmed against real sigrok-cli output (unlike the UART/I2C
+# formats above): inferred from the spi decoder's pd.py, which annotates
+# mosi/miso words as a plain hex byte via the same samplenum-range mechanism
+# as uart ('%02X' % word), so by analogy the line shape should match uart's
+# "START-END spi-1: XX".
+_SPI_LINE_RE = re.compile(r"^(\d+)-(\d+) spi-1: ([0-9A-Fa-f]+)$")
 
 
 class SigrokBackend(DecodeBackend):
@@ -69,41 +71,55 @@ class SigrokBackend(DecodeBackend):
         else:
             raise ValueError(f"Unsupported protocol {hypothesis.protocol}")
 
+    def _run_sigrok(self, args: list[str]) -> list[str]:
+        """Run sigrok-cli and return its stdout as a list of lines."""
+        result = subprocess.run(args, capture_output=True, text=True, check=True)
+        return [line for line in result.stdout.splitlines() if line]
+
     def _decode_uart(
         self, capture: Capture, hypothesis: ProtocolHypothesis
     ) -> list[DecodedEvent]:
         """Decode UART protocol using sigrok."""
-        # Build the arguments
-        # TODO(fix-regression-suite): capture has no .filename; see _SigrokInputSource
-        self._build_uart_args(capture, hypothesis)  # type: ignore[arg-type]
-
-        # Execute and parse output (placeholder - actual implementation pending)
-        raise NotImplementedError("Sigrok UART decoder not implemented yet")
+        with tempfile.NamedTemporaryFile(suffix=".sr", delete=False) as tmp:
+            sr_path = tmp.name
+        try:
+            write_sr(capture, sr_path)
+            args = self._build_uart_args(sr_path, hypothesis)
+            stdout_lines = self._run_sigrok(args)
+        finally:
+            Path(sr_path).unlink(missing_ok=True)
+        return _parse_uart_output(stdout_lines)
 
     def _decode_i2c(
         self, capture: Capture, hypothesis: ProtocolHypothesis
     ) -> list[DecodedEvent]:
         """Decode I²C protocol using sigrok."""
-        # Build the arguments
-        # TODO(fix-regression-suite): capture has no .filename; see _SigrokInputSource
-        self._build_i2c_args(capture, hypothesis)  # type: ignore[arg-type]
-
-        # Execute and parse output (placeholder - actual implementation pending)
-        raise NotImplementedError("Sigrok I²C decoder not implemented yet")
+        with tempfile.NamedTemporaryFile(suffix=".sr", delete=False) as tmp:
+            sr_path = tmp.name
+        try:
+            write_sr(capture, sr_path)
+            args = self._build_i2c_args(sr_path, hypothesis)
+            stdout_lines = self._run_sigrok(args)
+        finally:
+            Path(sr_path).unlink(missing_ok=True)
+        return _parse_i2c_output(stdout_lines)
 
     def _decode_spi(
         self, capture: Capture, hypothesis: ProtocolHypothesis
     ) -> list[DecodedEvent]:
         """Decode SPI protocol using sigrok."""
-        # Build the arguments
-        # TODO(fix-regression-suite): capture has no .filename; see _SigrokInputSource
-        self._build_spi_args(capture, hypothesis)  # type: ignore[arg-type]
-
-        # Execute and parse output (placeholder - actual implementation pending)
-        raise NotImplementedError("Sigrok SPI decoder not implemented yet")
+        with tempfile.NamedTemporaryFile(suffix=".sr", delete=False) as tmp:
+            sr_path = tmp.name
+        try:
+            write_sr(capture, sr_path)
+            args = self._build_spi_args(sr_path, hypothesis)
+            stdout_lines = self._run_sigrok(args)
+        finally:
+            Path(sr_path).unlink(missing_ok=True)
+        return _parse_spi_output(stdout_lines)
 
     def _build_uart_args(
-        self, capture: _SigrokInputSource, hypothesis: ProtocolHypothesis
+        self, sr_path: str, hypothesis: ProtocolHypothesis
     ) -> list[str]:
         """
         Build the exact sigrok-cli command line for UART protocol.
@@ -117,25 +133,27 @@ class SigrokBackend(DecodeBackend):
         baud = hypothesis.parameters["baud"]
         data_bits = hypothesis.parameters.get("data_bits", 8)
         parity = hypothesis.parameters.get("parity", "none")
-        stop_bits = hypothesis.parameters.get("stop_bits", 1.0)
+        stop_bits = _format_stop_bits(hypothesis.parameters.get("stop_bits", 1.0))
         rx_channel = hypothesis.channel_assignments["rx"]
 
         # Build the command
-        args = [
+        uart_opts = (
+            f"uart:rx={rx_channel}:baudrate={baud}:data_bits={data_bits}"
+            f":parity={parity}:stop_bits={stop_bits}"
+        )
+        return [
             "sigrok-cli",
             "-i",
-            capture.filename,
+            sr_path,
             "-P",
-            f"uart:rx={rx_channel}:baudrate={baud}:data_bits={data_bits}:parity={parity}:stop_bits={stop_bits}",
+            uart_opts,
             "-A",
             "uart=rx-data",
             "--protocol-decoder-samplenum",
         ]
 
-        return args
-
     def _build_i2c_args(
-        self, capture: _SigrokInputSource, hypothesis: ProtocolHypothesis
+        self, sr_path: str, hypothesis: ProtocolHypothesis
     ) -> list[str]:
         """
         Build the exact sigrok-cli command line for I²C protocol.
@@ -148,10 +166,10 @@ class SigrokBackend(DecodeBackend):
         sda_channel = hypothesis.channel_assignments["sda"]
 
         # Build the command
-        args = [
+        return [
             "sigrok-cli",
             "-i",
-            capture.filename,
+            sr_path,
             "-P",
             f"i2c:scl={scl_channel}:sda={sda_channel}",
             "-A",
@@ -159,10 +177,8 @@ class SigrokBackend(DecodeBackend):
             "--protocol-decoder-samplenum",
         ]
 
-        return args
-
     def _build_spi_args(
-        self, capture: _SigrokInputSource, hypothesis: ProtocolHypothesis
+        self, sr_path: str, hypothesis: ProtocolHypothesis
     ) -> list[str]:
         """
         Build the exact sigrok-cli command line for SPI protocol.
@@ -199,10 +215,10 @@ class SigrokBackend(DecodeBackend):
         param_str = ":".join(params)
 
         # Build the command
-        args = [
+        return [
             "sigrok-cli",
             "-i",
-            capture.filename,
+            sr_path,
             "-P",
             f"spi:{param_str}",
             "-A",
@@ -210,25 +226,45 @@ class SigrokBackend(DecodeBackend):
             "--protocol-decoder-samplenum",
         ]
 
-        return args
+
+def _format_stop_bits(stop_bits: float) -> str:
+    """Render whole-number stop_bits without a trailing .0.
+
+    Sigrok wants "1", not "1.0".
+    """
+    if stop_bits == int(stop_bits):
+        return str(int(stop_bits))
+    return str(stop_bits)
 
 
-# Parser functions for stdout lines (these would be used post-subprocess)
+# Parser functions for stdout lines (used post-subprocess)
 def _parse_uart_output(stdout_lines: list[str]) -> list[DecodedEvent]:
     """
     Parse UART output from sigrok-cli.
 
     Line format: "4368-6036 uart-1: 41"
     Parse to: uart.byte {value=0x41}
-
-    Args:
-        stdout_lines: List of lines from sigrok output
-
-    Returns:
-        List of DecodedEvent objects
     """
-    # Placeholder implementation - actual parsing needed
-    raise NotImplementedError("UART output parser not implemented yet")
+    events = []
+    for line in stdout_lines:
+        match = _UART_LINE_RE.match(line)
+        if not match:
+            continue
+        start_sample, end_sample, hex_value = match.groups()
+        value = int(hex_value, 16)
+        events.append(
+            DecodedEvent(
+                kind="uart.byte",
+                start_sample=int(start_sample),
+                end_sample=int(end_sample),
+                data={
+                    "value": value,
+                    "ascii": chr(value) if 32 <= value < 127 else None,
+                },
+                channel=None,
+            )
+        )
+    return events
 
 
 def _parse_i2c_output(stdout_lines: list[str]) -> list[DecodedEvent]:
@@ -240,15 +276,55 @@ def _parse_i2c_output(stdout_lines: list[str]) -> list[DecodedEvent]:
     "3660-4020 i2c-1: ACK"
     "4020-6900 i2c-1: Data write: AA"
     "Start", "Stop", "NACK"
-
-    Args:
-        stdout_lines: List of lines from sigrok output
-
-    Returns:
-        List of DecodedEvent objects
     """
-    # Placeholder implementation - actual parsing needed
-    raise NotImplementedError("I²C output parser not implemented yet")
+    events = []
+    for line in stdout_lines:
+        match = _I2C_LINE_RE.match(line)
+        if not match:
+            continue
+        start_sample, end_sample, text = match.groups()
+        start_sample_i, end_sample_i = int(start_sample), int(end_sample)
+
+        data: dict[str, Any]
+        if text == "Start":
+            kind, data = "i2c.start", {}
+        elif text == "Stop":
+            kind, data = "i2c.stop", {}
+        elif text == "ACK":
+            kind, data = "i2c.ack", {}
+        elif text == "NACK":
+            kind, data = "i2c.nak", {}
+        elif text.startswith("Address write: "):
+            kind = "i2c.address"
+            data = {
+                "address": int(text.removeprefix("Address write: "), 16),
+                "rw": "write",
+            }
+        elif text.startswith("Address read: "):
+            kind = "i2c.address"
+            data = {
+                "address": int(text.removeprefix("Address read: "), 16),
+                "rw": "read",
+            }
+        elif text.startswith("Data write: "):
+            kind = "i2c.data"
+            data = {"value": int(text.removeprefix("Data write: "), 16)}
+        elif text.startswith("Data read: "):
+            kind = "i2c.data"
+            data = {"value": int(text.removeprefix("Data read: "), 16)}
+        else:
+            continue
+
+        events.append(
+            DecodedEvent(
+                kind=kind,
+                start_sample=start_sample_i,
+                end_sample=end_sample_i,
+                data=data,
+                channel=None,
+            )
+        )
+    return events
 
 
 def _parse_spi_output(stdout_lines: list[str]) -> list[DecodedEvent]:
@@ -256,12 +332,21 @@ def _parse_spi_output(stdout_lines: list[str]) -> list[DecodedEvent]:
     Parse SPI output from sigrok-cli.
 
     Line format per design.md: One line per word; parse to spi.transfer.
-
-    Args:
-        stdout_lines: List of lines from sigrok output
-
-    Returns:
-        List of DecodedEvent objects
+    EMPIRICAL/unconfirmed line shape - see _SPI_LINE_RE.
     """
-    # Placeholder implementation - actual parsing needed
-    raise NotImplementedError("SPI output parser not implemented yet")
+    events = []
+    for line in stdout_lines:
+        match = _SPI_LINE_RE.match(line)
+        if not match:
+            continue
+        start_sample, end_sample, hex_value = match.groups()
+        events.append(
+            DecodedEvent(
+                kind="spi.transfer",
+                start_sample=int(start_sample),
+                end_sample=int(end_sample),
+                data={"mosi": int(hex_value, 16), "miso": None},
+                channel=None,
+            )
+        )
+    return events

@@ -45,9 +45,15 @@ def test_e2e_uart_decode():
         backend.decode(capture, hypothesis)
 
 
-def test_e2e_i2c_decode():
-    """Test complete I²C workflow from synthetic capture to decoded events."""
+def test_e2e_i2c_decode(monkeypatch):
+    """Test complete I²C workflow from synthetic capture to decoded events.
 
+    The synthetic capture from tests/synth.py is not a protocol-accurate
+    signal (it's a 3-sample placeholder), so real sigrok-cli cannot decode
+    it. Per design.md's subprocess-mocking guidance, mock the sigrok-cli
+    boundary with the confirmed real output format and assert on the
+    resulting events instead.
+    """
     # Create synthetic I²C capture
     generator = SimpleI2CGenerator(address=0x55, payload=[0xAA, 0xBB])
     capture, _ground_truth = generator.generate()
@@ -59,18 +65,40 @@ def test_e2e_i2c_decode():
         channel_assignments={"scl": "ch0", "sda": "ch1"},
     )
 
-    # Test that sigrok backend can process it (if available)
-    # We'll skip this for now since we don't have real sigrok available
     backend = SigrokBackend()
+    canned_stdout = [
+        "0-100 i2c-1: Start",
+        "100-400 i2c-1: Address write: 55",
+        "400-500 i2c-1: ACK",
+        "500-900 i2c-1: Data write: AA",
+        "900-1000 i2c-1: ACK",
+        "1000-1400 i2c-1: Data write: BB",
+        "1400-1500 i2c-1: ACK",
+        "1500-1600 i2c-1: Stop",
+    ]
+    monkeypatch.setattr(backend, "_run_sigrok", lambda args: canned_stdout)
 
-    # Should produce correct i2c events based on payload, once implemented
-    with pytest.raises(NotImplementedError):
-        backend.decode(capture, hypothesis)
+    events = backend.decode(capture, hypothesis)
+    assert [e.kind for e in events] == [
+        "i2c.start",
+        "i2c.address",
+        "i2c.ack",
+        "i2c.data",
+        "i2c.ack",
+        "i2c.data",
+        "i2c.ack",
+        "i2c.stop",
+    ]
+    assert events[1].data == {"address": 0x55, "rw": "write"}
+    assert [e.data["value"] for e in events if e.kind == "i2c.data"] == [0xAA, 0xBB]
 
 
-def test_e2e_spi_decode():
-    """Test complete SPI workflow from synthetic capture to decoded events."""
+def test_e2e_spi_decode(monkeypatch):
+    """Test complete SPI workflow from synthetic capture to decoded events.
 
+    See test_e2e_i2c_decode's docstring: sigrok-cli is mocked at the
+    subprocess boundary because the synthetic capture isn't a real signal.
+    """
     # Create synthetic SPI capture
     generator = SimpleSPIGenerator(cpol=0, cpha=1, payload=[0x55, 0xAA])
     capture, _ground_truth = generator.generate()
@@ -89,12 +117,13 @@ def test_e2e_spi_decode():
         channel_assignments={"clk": "ch0", "mosi": "ch1", "miso": "ch2"},
     )
 
-    # Test that sigrok backend can process it
     backend = SigrokBackend()
+    canned_stdout = ["0-100 spi-1: 55", "100-200 spi-1: AA"]
+    monkeypatch.setattr(backend, "_run_sigrok", lambda args: canned_stdout)
 
-    # Should produce correct spi.events based on payload, once implemented
-    with pytest.raises(NotImplementedError):
-        backend.decode(capture, hypothesis)
+    events = backend.decode(capture, hypothesis)
+    assert [e.kind for e in events] == ["spi.transfer", "spi.transfer"]
+    assert [e.data["mosi"] for e in events] == [0x55, 0xAA]
 
 
 if __name__ == "__main__":

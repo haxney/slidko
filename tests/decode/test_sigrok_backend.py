@@ -7,8 +7,6 @@ This tests requirements from design.md:
 - Parser tests with canned stdout lines to produce DecodedEvent objects
 """
 
-import pytest
-
 from slidko.decode import sigrok_backend
 from slidko.decode.backend import ProtocolHypothesis
 from slidko.decode.sigrok_backend import SigrokBackend
@@ -30,21 +28,21 @@ def test_sigrok_uart_args_building():
         channel_assignments={"rx": "D0"},
     )
 
-    # Create a mock capture object
-    class MockCapture:
-        filename = "test_capture.sr"
-
-    capture = MockCapture()
-
     # Create backend instance
     backend = SigrokBackend()
 
-    # This should fail before implementation - once implemented, replace with
-    # a real assertion that args equals: ["sigrok-cli", "-i", "test_capture.sr",
-    # "-P", "uart:rx=D0:baudrate=115200:data_bits=8:parity=none:stop_bits=1",
-    # "-A", "uart=rx-data", "--protocol-decoder-samplenum"]
-    with pytest.raises(NotImplementedError):
-        backend._build_uart_args(capture, hypothesis)
+    args = backend._build_uart_args("test_capture.sr", hypothesis)
+    expected = [
+        "sigrok-cli",
+        "-i",
+        "test_capture.sr",
+        "-P",
+        "uart:rx=D0:baudrate=115200:data_bits=8:parity=none:stop_bits=1",
+        "-A",
+        "uart=rx-data",
+        "--protocol-decoder-samplenum",
+    ]
+    assert args == expected
 
 
 def test_sigrok_i2c_args_building():
@@ -57,20 +55,21 @@ def test_sigrok_i2c_args_building():
         channel_assignments={"scl": "D0", "sda": "D1"},
     )
 
-    # Create a mock capture object
-    class MockCapture:
-        filename = "test_capture.sr"
-
-    capture = MockCapture()
-
     # Create backend instance
     backend = SigrokBackend()
 
-    # This should fail before implementation - once implemented, replace with
-    # a real assertion that args equals: ["sigrok-cli", "-i", "test_capture.sr",
-    # "-P", "i2c:scl=D0:sda=D1", "-A", "i2c=data", "--protocol-decoder-samplenum"]
-    with pytest.raises(NotImplementedError):
-        backend._build_i2c_args(capture, hypothesis)
+    args = backend._build_i2c_args("test_capture.sr", hypothesis)
+    expected = [
+        "sigrok-cli",
+        "-i",
+        "test_capture.sr",
+        "-P",
+        "i2c:scl=D0:sda=D1",
+        "-A",
+        "i2c=addr-data",
+        "--protocol-decoder-samplenum",
+    ]
+    assert args == expected
 
 
 def test_sigrok_spi_args_building():
@@ -91,57 +90,60 @@ def test_sigrok_spi_args_building():
         channel_assignments={"clk": "D0", "mosi": "D1", "miso": "D2", "cs": "D3"},
     )
 
-    # Create a mock capture object
-    class MockCapture:
-        filename = "test_capture.sr"
-
-    capture = MockCapture()
-
     # Create backend instance
     backend = SigrokBackend()
 
-    # This should fail before implementation - once implemented, replace with
-    # a real assertion that args equals: ["sigrok-cli", "-i", "test_capture.sr",
-    # "-P", "spi:clk=D0:mosi=D1:miso=D2:cs=D3:cpol=0:cpha=1:wordsize=8", "-A",
-    # "spi=data", "--protocol-decoder-samplenum"]
-    with pytest.raises(NotImplementedError):
-        backend._build_spi_args(capture, hypothesis)
+    args = backend._build_spi_args("test_capture.sr", hypothesis)
+    expected = [
+        "sigrok-cli",
+        "-i",
+        "test_capture.sr",
+        "-P",
+        "spi:clk=D0:cpol=0:cpha=1:wordsize=8:mosi=D1:miso=D2:cs=D3",
+        "-A",
+        "spi=mosi-data",
+        "--protocol-decoder-samplenum",
+    ]
+    assert args == expected
 
 
 def test_sigrok_uart_stdout_parsing():
     """Test parsing of UART stdout from sigrok-cli."""
 
-    # Mock stdout data (format as example outputs from design.md)
+    # Real confirmed sigrok-cli output format (design.md)
     stdout_lines = [
-        "0.012345 0x41",  # Byte A at 12.345ms (time in seconds)
-        "0.013456 0x42",  # Byte B
-        "0.014567 0x43",  # Byte C
+        "4368-6036 uart-1: 41",
+        "6036-7704 uart-1: 42",
+        "7704-9372 uart-1: 43",
     ]
 
-    # This should fail before implementation - once implemented, replace with
-    # real assertions: len(events) == 3, events[0].kind == "uart.byte",
-    # events[0].data["value"] == 0x41
-    with pytest.raises(NotImplementedError):
-        sigrok_backend._parse_uart_output(stdout_lines)
+    events = sigrok_backend._parse_uart_output(stdout_lines)
+    assert len(events) == 3
+    assert events[0].kind == "uart.byte"
+    assert events[0].start_sample == 4368
+    assert events[0].end_sample == 6036
+    assert events[0].data["value"] == 0x41
+    assert events[0].data["ascii"] == "A"
 
 
 def test_sigrok_i2c_stdout_parsing():
     """Test parsing of I²C stdout from sigrok-cli."""
 
-    # Mock stdout data
+    # Real confirmed sigrok-cli output format (design.md)
     stdout_lines = [
-        "0.001234 START",
-        "0.001345 0x55",  # Address + R/W
-        "0.002456 0xAA",  # Data byte
-        "0.003567 STOP",
+        "0-100 i2c-1: Start",
+        "780-3300 i2c-1: Address write: 68",
+        "3660-4020 i2c-1: ACK",
+        "4020-6900 i2c-1: Data write: AA",
+        "7260-7260 i2c-1: Stop",
     ]
 
-    # This should fail before implementation - once implemented, replace with a
-    # real assertion: len(events) >= 2 (at least address and data), plus more
-    # specific assertions as parsing is completed
-    with pytest.raises(NotImplementedError):
-        sigrok_backend._parse_i2c_output(stdout_lines)
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])
+    events = sigrok_backend._parse_i2c_output(stdout_lines)
+    assert len(events) == 5
+    assert events[0].kind == "i2c.start"
+    assert events[1].kind == "i2c.address"
+    assert events[1].data == {"address": 0x68, "rw": "write"}
+    assert events[2].kind == "i2c.ack"
+    assert events[3].kind == "i2c.data"
+    assert events[3].data == {"value": 0xAA}
+    assert events[4].kind == "i2c.stop"

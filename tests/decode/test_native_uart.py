@@ -73,7 +73,8 @@ def test_native_uart_decode_115200():
 
 
 def test_native_uart_decode_sbus():
-    """Test that SBUS is handled by sigrok path (not native backend)."""
+    """Test that the native backend refuses SBUS (8E2) by design - only 8N1
+    is supported natively; SBUS must route through the sigrok backend."""
     # SBUS uses different params (100000-8E2)
     generator = SimpleUARTGenerator(baud=100000, payload=[0x45])  # "E"
     capture, _ground_truth = generator.generate()
@@ -94,8 +95,8 @@ def test_native_uart_decode_sbus():
     # Create the backend
     backend = NativeUARTBackend()
 
-    # For now SBUS should raise an error or be handled by sigrok path
-    with pytest.raises(NotImplementedError):
+    # Native backend only supports 8N1; SBUS is 8E2, so this must be refused
+    with pytest.raises(ValueError, match="8N1"):
         backend.decode(capture, hypothesis)
 
 

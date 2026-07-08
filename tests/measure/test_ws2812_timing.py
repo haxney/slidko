@@ -6,12 +6,12 @@ from slidko.measure.smoke import detect_ws2812_timing
 def test_ws2812_timing_clean():
     """Test that a spec-exact WS2812 train yields no timing finding"""
     # At 24 MHz, 1 sample = ~41.67 ns
-    # T0H = 400 ns = ~9.6 samples
-    # T1H = 800 ns = ~19.2 samples
-    # Window = 150 ns = ±3.6 samples
+    # T0H = 400 ns +/- 150 ns -> [250, 550] ns -> [6.0, 13.2] samples
+    # T1H = 800 ns +/- 150 ns -> [650, 950] ns -> [15.6, 22.8] samples
 
-    # Make clean edges for valid 3-bit pattern
-    edges = [0, 10, 20, 25, 40, 45]  # All high times within window (10, 5, 5)
+    # Two clean bits: a "0" bit (10 samples high) then a "1" bit (18 samples
+    # high), each followed by enough low time to clear the other window.
+    edges = [0, 10, 40, 58]
     samplerate_hz = 24000000
 
     findings = detect_ws2812_timing(edges, samplerate_hz, "channel_A")

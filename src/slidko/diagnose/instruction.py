@@ -88,6 +88,13 @@ def validate_instruction(
     """
     errors = []
 
+    # Dict-level pre-validation (House Decision 2): canned/raw output missing
+    # expected_outcome_per_hypothesis is a representable, testable scenario.
+    if not instruction.expected_outcome_per_hypothesis:
+        errors.append(
+            ValidationError("Missing required field: expected_outcome_per_hypothesis")
+        )
+
     # Rule 2: Check pad-level claims for citations or unknown flag
     if is_pad_level_claim(instruction):
         # Pad level instruction needs either citation or unknown flag

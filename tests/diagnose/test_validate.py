@@ -1,6 +1,5 @@
 from dataclasses import dataclass
-
-import pytest
+from typing import Any
 
 # Import from the actual module being tested
 from slidko.diagnose.instruction import Instruction, validate_instruction
@@ -15,28 +14,32 @@ class MockRetrieval:
 
 
 def test_missing_expected_outcome_per_hypothesis_field():
-    """A canned LLM output missing expected_outcome_per_hypothesis is rejected.
+    """A canned LLM output missing expected_outcome_per_hypothesis is rejected
+    with a field-level validation error, not a construction-time TypeError.
 
-    Current implementation gap (tracked in fix-regression-suite): Instruction
-    is a strict dataclass with no dict-level pre-validation step, so a raw
-    LLM-shaped dict missing a required field can never reach
-    validate_instruction() at all -- construction itself raises TypeError.
-    The spec scenario ("a canned LLM output ... is validated") implies
-    validation of raw dict/JSON input before dataclass construction, which
-    does not exist yet. This test documents the actual current behavior.
+    expected_outcome_per_hypothesis is Optional[...] = None at the dataclass
+    level (House Decision 2), so a canned/raw dict missing it constructs
+    fine; validate_instruction() is what reports the missing field.
     """
-    canned_output = {
+    canned_output: dict[str, Any] = {
         "action": "clip",
         "target": "TP7",
         "parameters": {},
-        # expected_outcome_per_hypothesis deliberately omitted
+        # expected_outcome_per_hypothesis deliberately omitted (defaults to None)
         "hazard_notes": "test hazard note",
         "executor": "human",
         "citations": [],
     }
 
-    with pytest.raises(TypeError):
-        Instruction(**canned_output)  # type: ignore[arg-type]
+    instruction = Instruction(**canned_output)
+    mock_retrieval = MockRetrieval(
+        board_id="test-board", tier="open-book", fragments={"doc1#anchor1": "content1"}
+    )
+
+    errors = validate_instruction(instruction, mock_retrieval)
+    assert len(errors) > 0
+    error_messages = [str(e) for e in errors]
+    assert any("expected_outcome_per_hypothesis" in msg for msg in error_messages)
 
 
 def test_pad_level_claim_without_citation_or_unknown_flag():

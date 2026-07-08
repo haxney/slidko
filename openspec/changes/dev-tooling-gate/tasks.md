@@ -49,5 +49,5 @@
 
 ## 8. Wrap-up
 
-- [ ] 8.1 `make check` green; `git status --porcelain` empty (no uncommitted formatter output)
-- [ ] 8.2 Commit with a message naming this gate (e.g. "dev-tooling-gate: pin tools, add mypy + make check + clang-format"); this is the last time history should ever need a style-only commit
+- [x] 8.1 `make check` green (lint, typecheck, and all 85 tests pass); `git status --porcelain` empty after `make check` runs
+- [x] 8.2 Commit with a message naming this gate; this is the last time history should ever need a style-only commit — the test fixes that unblocked this were committed separately (routed through `fix-regression-suite`, which owned that diagnosis) rather than folded into this gate's own commit
