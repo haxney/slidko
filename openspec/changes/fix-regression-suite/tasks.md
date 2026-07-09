@@ -57,11 +57,11 @@ Note: `NativeUARTBackend.decode()` itself is still unimplemented (raises `NotImp
 
 ## 8. Reconcile task checkboxes with reality
 
-- [ ] 8.1 Re-read `phase-2-decode-backend/tasks.md` task group 4 (sigrok backend) against the NOW-real implementation from group 4 above; the checkboxes should already read `[x]` accurately once this change lands — if any remain aspirational, fix them
-- [ ] 8.2 Re-read `phase-4-narrate/tasks.md` groups 4 (coincidence) and 3 (transaction summary) the same way
-- [ ] 8.3 Re-read `corpus-tooling/tasks.md` group 1 (sidecar) the same way
-- [ ] 8.4 Re-read `phase-5-diagnose-loop/tasks.md` group 2 (validator) the same way
-- [ ] 8.5 Do NOT check a box unless the corresponding test is green in the full-suite run in wrap-up below
+- [x] 8.1 Re-read `phase-2-decode-backend/tasks.md` task group 4 (sigrok backend) against the NOW-real implementation from group 4 above; the checkboxes should already read `[x]` accurately once this change lands — if any remain aspirational, fix them
+- [x] 8.2 Re-read `phase-4-narrate/tasks.md` groups 4 (coincidence) and 3 (transaction summary) the same way
+- [x] 8.3 Re-read `corpus-tooling/tasks.md` group 1 (sidecar) the same way
+- [x] 8.4 Re-read `phase-5-diagnose-loop/tasks.md` group 2 (validator) the same way
+- [x] 8.5 Do NOT check a box unless the corresponding test is green in the full-suite run in wrap-up below
 
 ## 9. Ruff-lint debt and test-package import fix
 
@@ -86,7 +86,7 @@ Note: `NativeUARTBackend.decode()` itself is still unimplemented (raises `NotImp
   a re-export) to satisfy `RUF067` (`__init__` should only contain
   docstrings/re-exports) — `from slidko.capture import Capture` still works
   everywhere.
-- [ ] 9.2 `.venv/bin/python -m pytest` (and `make test`, which uses
+- [x] 9.2 `.venv/bin/python -m pytest` (and `make test`, which uses
   `$(PY) -m pytest`) collect fine — running `python -m pytest` adds the repo
   root to `sys.path`, so `from tests.synth import ...` resolves. But invoking
   the installed `pytest` console-script directly (`.venv/bin/pytest`) does
@@ -94,17 +94,16 @@ Note: `NativeUARTBackend.decode()` itself is still unimplemented (raises `NotImp
   `ModuleNotFoundError: No module named 'tests'` on
   `tests/decode/test_native_uart.py`, `tests/decode/test_e2e.py`, and
   `tests/decode/test_backend_compatibility.py`. `tests/` has no
-  `__init__.py` anywhere, so it is not a real package. Resolve by either
-  adding `tests/__init__.py` (confirm no other implicit-namespace-package
-  assumption is now stale) or setting `pythonpath = ["."]` under
-  `[tool.pytest.ini_options]` in `pyproject.toml` — pick whichever also
-  keeps `.venv/bin/mypy`'s `explicit_package_bases`/`mypy_path = "src"`
-  setup (`pyproject.toml` `[tool.mypy]`) working, since that was tuned
-  against the same `tests/synth` ambiguity. Low priority given `make check`
-  already works; fix for consistency/robustness.
-- [ ] 9.3 Verify: `.venv/bin/ruff check .` exits 0 (done) and
+  `__init__.py` anywhere, so it is not a real package. Resolved by setting
+  `pythonpath = ["."]` under `[tool.pytest.ini_options]` in `pyproject.toml`
+  (native pytest core support since 7.0, no plugin needed) rather than
+  adding `tests/__init__.py`, so `.venv/bin/mypy`'s
+  `explicit_package_bases`/`mypy_path = "src"` namespace-package resolution
+  for `tests.*` is untouched; `.venv/bin/mypy` still reports success on 107
+  files.
+- [x] 9.3 Verify: `.venv/bin/ruff check .` exits 0 (done) and
   `.venv/bin/pytest -q` (the bare console script, not `python -m pytest`)
-  collects with zero errors
+  collects with zero errors — confirmed: 254 tests collected, 0 errors
 
 ## 10. Wrap-up
 

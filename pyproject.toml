@@ -75,6 +75,7 @@ python_files = ["tests/*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 testpaths = ["tests"]
+pythonpath = ["."]
 
 [tool.mypy]
 # No explicit python_version pin: infer from the running interpreter. Pinning
