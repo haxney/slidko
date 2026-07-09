@@ -27,23 +27,23 @@
 
 ## 5. Receiver-rule caveat (the killer case)
 
-- [ ] 5.1 Write the killer-case failing test: a capture that decodes cleanly at 1.4 V instrument threshold, with sidecar `receiver.vih_v = 3.5`, `receiver_verdict.observed = "flicker"` (5 V WS2812), produces a `receiver_rule.caveat` assertion naming BOTH thresholds AND the assertion set contains NO "bus healthy" claim
-- [ ] 5.2 Write the complementary test: when instrument threshold ≈ receiver V_IH (within `RECEIVER_THRESHOLD_MARGIN_V`) and verdict is clean, NO caveat is emitted
-- [ ] 5.3 Write the bare-capture test: with no receiver metadata, Narrate emits no receiver health claim and no fabricated verdict (may state the instrument-threshold limitation)
-- [ ] 5.4 Implement `receiver_rule_caveat(capture, sidecar, decoded_ok) -> list[Assertion]` and the suppression of health claims per design.md; tests green
+- [x] 5.1 Write the killer-case failing test: a capture that decodes cleanly at 1.4 V instrument threshold, with sidecar `receiver.vih_v = 3.5`, `receiver_verdict.observed = "flicker"` (5 V WS2812), produces a `receiver_rule.caveat` assertion naming BOTH thresholds AND the assertion set contains NO "bus healthy" claim
+- [x] 5.2 Write the complementary test: when instrument threshold ≈ receiver V_IH (within `RECEIVER_THRESHOLD_MARGIN_V`) and verdict is clean, NO caveat is emitted
+- [x] 5.3 Write the bare-capture test: with no receiver metadata, Narrate emits no receiver health claim and no fabricated verdict (may state the instrument-threshold limitation)
+- [x] 5.4 Implement `receiver_rule_caveat(capture, sidecar, decoded_ok) -> list[Assertion]` and the suppression of health claims per design.md; tests green
 
 ## 6. Narrate orchestrator
 
-- [ ] 6.1 Implement `narrate(capture, events, findings, sidecar=None) -> list[Assertion]` composing groups 3–5; ensure every emitted assertion carries non-empty evidence
-- [ ] 6.2 Write the traceability test: serialize the assertion set, reload, and confirm each assertion's evidence references still index valid events / sample ranges in the source capture
+- [x] 6.1 Implement `narrate(capture, events, findings, sidecar=None) -> list[Assertion]` composing groups 3–5; ensure every emitted assertion carries non-empty evidence
+- [x] 6.2 Write the traceability test: serialize the assertion set, reload, and confirm each assertion's evidence references still index valid events / sample ranges in the source capture
 
 ## 7. Golden-file evaluation
 
-- [ ] 7.1 Write a golden-file test harness in `tests/narrate/test_golden.py`: load `tests/narrate/golden/<entry>.json`, run `narrate` on the corresponding synthetic entry, compare assertion sets ORDER-INSENSITIVELY (missing/extra fail; reorder passes)
-- [ ] 7.2 Create at least three committed goldens: (a) healthy I²C IMU bus, (b) I²C bus with a NAK coincident with a smoke finding, (c) the WS2812 receiver-rule killer case; generate them deliberately and hand-verify their contents
-- [ ] 7.3 Add a negative test: a golden with an extra expected assertion fails; a reordered golden passes — proving the comparator is order-insensitive but not lax
+- [x] 7.1 Write a golden-file test harness in `tests/narrate/test_golden.py`: load `tests/narrate/golden/<entry>.json`, run `narrate` on the corresponding synthetic entry, compare assertion sets ORDER-INSENSITIVELY (missing/extra fail; reorder passes)
+- [x] 7.2 Create at least three committed goldens: (a) healthy I²C IMU bus, (b) I²C bus with a NAK coincident with a smoke finding, (c) the WS2812 receiver-rule killer case; generate them deliberately and hand-verify their contents
+- [x] 7.3 Add a negative test: a golden with an extra expected assertion fails; a reordered golden passes — proving the comparator is order-insensitive but not lax
 
 ## 8. Wrap-up
 
-- [ ] 8.1 `make check` green; the killer-case test (5.1) and golden tests pass
-- [ ] 8.2 Commit naming the task groups
+- [x] 8.1 `make check` green; the killer-case test (5.1) and golden tests pass
+- [x] 8.2 Commit naming the task groups

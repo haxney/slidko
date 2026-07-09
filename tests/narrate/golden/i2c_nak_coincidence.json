@@ -1,0 +1,42 @@
+[
+  {
+    "confidence": 0.9,
+    "evidence": {
+      "event_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "finding_refs": [],
+      "sample_ranges": []
+    },
+    "kind": "transaction.summary",
+    "text": "1 transaction to address 0x68 with 1 NAK (MPU-6050, MPU-9250, ICM-20602 (and more))"
+  },
+  {
+    "confidence": 0.8,
+    "evidence": {
+      "event_indices": [
+        4
+      ],
+      "finding_refs": [
+        0
+      ],
+      "sample_ranges": [
+        [
+          4620,
+          4860
+        ],
+        [
+          4650,
+          4700
+        ]
+      ]
+    },
+    "kind": "coincidence",
+    "text": "Coincidence detected between NAK on channel the bus and finding on channel scl at 1\u03bcs"
+  }
+]

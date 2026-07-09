@@ -1,0 +1,17 @@
+[
+  {
+    "confidence": 1.0,
+    "evidence": {
+      "event_indices": [],
+      "finding_refs": [],
+      "sample_ranges": [
+        [
+          0,
+          9
+        ]
+      ]
+    },
+    "kind": "receiver_rule.caveat",
+    "text": "Decode succeeded cleanly at the instrument's 1.4 V threshold, but the receiver verdict was \"flicker\" (WS2812B, V_IH \u2248 3.5 V) - a clean decode here does not mean the bus is healthy; the instrument's threshold does not represent what this receiver saw."
+  }
+]

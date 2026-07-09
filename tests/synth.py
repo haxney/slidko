@@ -200,7 +200,7 @@ class SimpleUARTGenerator(Generator):
 # ---------------------------------------------------------------------------
 
 
-class _I2CBuilder:
+class I2CBuilder:
     """Bit-bangs SCL/SDA run-length segments for an I2C transaction."""
 
     def __init__(self, quarter_period_samples: int):
@@ -276,7 +276,7 @@ class SimpleI2CGenerator(Generator):
         q = max(1, period_samples // 4)
         stretch_samples = q * 2 if self.clock_stretching else 0
 
-        builder = _I2CBuilder(q)
+        builder = I2CBuilder(q)
         builder.idle(q * 4)
         builder.start()
         addr_rw = ((self.address & 0x7F) << 1) | (self.rw & 1)

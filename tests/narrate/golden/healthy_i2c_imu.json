@@ -1,0 +1,23 @@
+[
+  {
+    "confidence": 0.9,
+    "evidence": {
+      "event_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "finding_refs": [],
+      "sample_ranges": []
+    },
+    "kind": "transaction.summary",
+    "text": "1 transaction to address 0x68 (MPU-6050, MPU-9250, ICM-20602 (and more))"
+  }
+]

@@ -34,6 +34,19 @@ class TestCoincidence(unittest.TestCase):
         coincidence_assertions = [a for a in results if a.kind == "coincidence"]
         assert len(coincidence_assertions) > 0
 
+        assertion = coincidence_assertions[0]
+        assert "0" in assertion.text
+        assert "1" in assertion.text
+        # Evidence must use real list-position indices (into events/findings),
+        # not raw sample numbers, and must reference the finding via
+        # finding_refs (not smuggled into event_indices).
+        assert assertion.evidence.event_indices == (0,)
+        assert assertion.evidence.finding_refs == (0,)
+        assert assertion.evidence.sample_ranges == (
+            (nak_event.start_sample, nak_event.end_sample),
+            (finding.start_sample, finding.end_sample),
+        )
+
     def test_non_coincident_events_do_not_coincide(self):
         """events outside the window do NOT coincide"""
         nak_event = CanonicalDecodedEvent(
