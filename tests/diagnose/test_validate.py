@@ -180,3 +180,89 @@ def test_valid_ic_pin_with_accessibility_filter():
         "citation" in msg.lower() or "unknown" in msg.lower() for msg in error_messages
     )
     assert not any("Accessibility filter" in msg for msg in error_messages)
+
+
+def test_fine_pitch_ic_pin_on_powered_board_rejected_for_accessibility():
+    """A fine-pitch (<= 0.5mm) IC pin on a POWERED board is rejected with an
+    accessibility-filter error (task 3.1's core case)."""
+    instruction = Instruction(
+        action="probe",
+        target="U3 pin 4",
+        parameters={"power_state": "on", "pitch": 0.4},
+        expected_outcome_per_hypothesis={"hyp1": "outcome1"},
+        hazard_notes="test hazard note",
+        executor="human",
+        citations=["doc1#anchor1"],
+        unknown=False,
+    )
+    mock_retrieval = MockRetrieval(
+        board_id="test-board", tier="open-book", fragments={"doc1#anchor1": "content1"}
+    )
+
+    errors = validate_instruction(instruction, mock_retrieval)
+
+    assert any("Accessibility filter" in str(e) for e in errors)
+
+
+def test_dark_tier_board_rejects_pad_level_claim_without_unknown_flag():
+    """A dark-tier board makes any pad-level placement claim without
+    unknown=True fail validation, even with a citation that happens to
+    resolve (task 4.3)."""
+    instruction = Instruction(
+        action="clip",
+        target="TP7",
+        parameters={"power_state": "off"},
+        expected_outcome_per_hypothesis={"hyp1": "outcome1"},
+        hazard_notes="test hazard note",
+        executor="human",
+        citations=["doc1#anchor1"],
+        unknown=False,
+    )
+    dark_retrieval = MockRetrieval(
+        board_id="dark-board", tier="dark", fragments={"doc1#anchor1": "content1"}
+    )
+
+    errors = validate_instruction(instruction, dark_retrieval)
+
+    assert any("dark-tier" in str(e) for e in errors)
+
+
+def test_dark_tier_board_accepts_pad_level_claim_with_unknown_flag():
+    """The same dark-tier board accepts the claim once unknown=True."""
+    instruction = Instruction(
+        action="clip",
+        target="TP7",
+        parameters={"power_state": "off"},
+        expected_outcome_per_hypothesis={"hyp1": "outcome1"},
+        hazard_notes="test hazard note",
+        executor="human",
+        citations=[],
+        unknown=True,
+    )
+    dark_retrieval = MockRetrieval(board_id="dark-board", tier="dark", fragments={})
+
+    errors = validate_instruction(instruction, dark_retrieval)
+
+    assert errors == []
+
+
+def test_connector_or_test_point_accepted_regardless_of_power():
+    """A connector/test-point target (not an IC pin) is never rejected by
+    the accessibility filter, powered or not."""
+    instruction = Instruction(
+        action="probe",
+        target="TP7",
+        parameters={"power_state": "on", "pitch": 0.4},
+        expected_outcome_per_hypothesis={"hyp1": "outcome1"},
+        hazard_notes="test hazard note",
+        executor="human",
+        citations=["doc1#anchor1"],
+        unknown=False,
+    )
+    mock_retrieval = MockRetrieval(
+        board_id="test-board", tier="open-book", fragments={"doc1#anchor1": "content1"}
+    )
+
+    errors = validate_instruction(instruction, mock_retrieval)
+
+    assert not any("Accessibility filter" in str(e) for e in errors)

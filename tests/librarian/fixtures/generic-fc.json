@@ -1,0 +1,7 @@
+{
+  "board_id": "generic-fc",
+  "tier": "pinout-only",
+  "fragments": {
+    "pinout.md#uart3": "UART3: TX3/RX3 broken out on the rear header, function unconfirmed beyond silkscreen label."
+  }
+}

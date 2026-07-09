@@ -16,6 +16,7 @@ classifiers = [
 dependencies = [
     "numpy",
     "scipy",
+    "anthropic==0.116.0",
 ]
 
 [project.optional-dependencies]

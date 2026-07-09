@@ -1,0 +1,10 @@
+{
+  "board_id": "matek-f405-wing",
+  "tier": "open-book",
+  "fragments": {
+    "pinout.md#uart1": "UART1: TX1 on PA9, RX1 on PA10. Shared with USB VCP when not remapped.",
+    "pinout.md#uart2": "UART2: TX2 on PA2, RX2 on PA3. Default RX for SBUS receivers.",
+    "pinout.md#i2c1": "I2C1: SCL on PB6, SDA on PB7. Populated by the onboard baro (BMP280) at 0x76.",
+    "connectors.md#jst-batt": "JST-XH battery connector, 2-pin, positive lead nearest the USB port."
+  }
+}

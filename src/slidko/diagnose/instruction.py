@@ -7,15 +7,16 @@ MIN_PITCH_FOR_ACCESSIBILITY_MM = 0.5
 
 
 class RetrievalLike(Protocol):
-    """Structural shape validate_instruction needs from a librarian Retrieval.
-
-    The librarian module itself (phase-5-diagnose-loop) is not built yet;
-    this Protocol covers only what this module accesses, so it stays
-    accurate without depending on unbuilt code.
-    """
+    """Structural shape validate_instruction needs from a librarian
+    Retrieval (slidko.librarian.Retrieval satisfies this structurally -
+    kept as a narrow Protocol here rather than an import so this module
+    doesn't depend on librarian's module layout)."""
 
     @property
     def fragments(self) -> dict[str, str]: ...
+
+    @property
+    def tier(self) -> str: ...
 
 
 @dataclass(frozen=True)
@@ -111,6 +112,19 @@ def validate_instruction(
                 # Check the citation resolves to something in retrieval fragments
                 if citation not in retrieval.fragments:
                     errors.append(ValidationError(f"Dangling citation: {citation}"))
+
+        # Dark-tier enforcement: a dark board's documentation is unreliable
+        # enough that no pad-level claim may stand without an explicit
+        # unknown flag, independent of whether a citation happens to
+        # resolve (design.md § Librarian retrieval - checked explicitly
+        # rather than relying on fragments being incidentally empty).
+        if retrieval.tier == "dark" and not instruction.unknown:
+            errors.append(
+                ValidationError(
+                    "Pad-level placement claim on a dark-tier board requires "
+                    "unknown=True"
+                )
+            )
 
     # Rule 5: Empty hazard notes on pad-level placement instructions
     if is_pad_level_claim(instruction) and not instruction.hazard_notes:
