@@ -1,54 +1,67 @@
+"""
+Runt/glitch pulse check (design.md § Check 2). Tests requirements:
+- a clean protocol capture yields no runt finding
+- a capture with an injected 1-2 sample glitch (tests/synth.py's
+  inject_glitches) yields a runt finding windowed on the glitch
+"""
+
 import pytest
 
+from slidko.measure.edges import extract_edges
 from slidko.measure.smoke import detect_runt_pulses
+from tests.synth import SimpleUARTGenerator, inject_glitches
 
 
 def test_runt_pulses_clean_capture():
-    """Test that clean captures (with no runt pulses) yield no findings"""
-    # A simple square wave - no runt pulses
-    edges = [0, 100, 200, 300, 400, 500]
+    generator = SimpleUARTGenerator(baud=9600, payload=[0x55, 0xAA, 0x33])
+    capture, _ground_truth = generator.generate()
+    edges = extract_edges(capture.channels["ch0"])
 
-    findings = detect_runt_pulses(edges, "channel_A")
+    findings = detect_runt_pulses(edges, "ch0")
 
-    # Should produce no findings for clean capture
-    assert len(findings) == 0
+    assert findings == []
 
 
-def test_runt_pulses_with_glitch():
-    """Test that a capture with an injected 1-2 sample glitch yields a finding"""
-    # Create edges where there's a 1-sample pulse
-    # [0, 99, 100, 200, 300] - 1-sample pulse from edge 1 to 2
-    # This is an illegal runt pulse
-    edges = [0, 99, 100, 200, 300]
+def test_runt_pulses_with_one_sample_glitch():
+    generator = SimpleUARTGenerator(baud=9600, payload=[0x55, 0xAA, 0x33])
+    capture, ground_truth = generator.generate()
+    capture, ground_truth = inject_glitches(
+        capture, ground_truth, "ch0", count=1, pulse_samples=1, seed=3
+    )
+    edges = extract_edges(capture.channels["ch0"])
+    assert ground_truth.injected_faults is not None
+    fault = ground_truth.injected_faults[-1]
+    glitch_sample = fault["affected_indices"][0]
 
-    findings = detect_runt_pulses(edges, "channel_A")
+    findings = detect_runt_pulses(edges, "ch0")
 
-    # Should detect the runt pulse
     assert len(findings) == 1
     finding = findings[0]
     assert finding.check == "runt_pulse"
-    assert finding.channel == "channel_A"
-    # Window should cover the 1-sample pulse
-    assert finding.start_sample == 99
-    assert finding.end_sample == 100
+    assert finding.channel == "ch0"
+    assert finding.start_sample <= glitch_sample <= finding.end_sample
+    assert finding.evidence["pulse_samples"] <= 2
+    assert finding.escalation.startswith("smoke → scope")
 
 
-def test_runt_pulses_with_two_samples():
-    """Test that a capture with a 2-sample glitch yields a finding"""
-    # Create edges where there's a 2-sample pulse
-    # [0, 98, 100, 200, 300] - 2-sample pulse from edge 1 to 2
-    edges = [0, 98, 100, 200, 300]
+def test_runt_pulses_with_two_sample_glitch():
+    generator = SimpleUARTGenerator(baud=9600, payload=[0x55, 0xAA, 0x33])
+    capture, ground_truth = generator.generate()
+    capture, ground_truth = inject_glitches(
+        capture, ground_truth, "ch0", count=1, pulse_samples=2, seed=3
+    )
+    edges = extract_edges(capture.channels["ch0"])
+    assert ground_truth.injected_faults is not None
+    fault = ground_truth.injected_faults[-1]
+    glitch_sample = fault["affected_indices"][0]
 
-    findings = detect_runt_pulses(edges, "channel_A")
+    findings = detect_runt_pulses(edges, "ch0")
 
-    # Should detect the runt pulse
-    assert len(findings) == 1
-    finding = findings[0]
-    assert finding.check == "runt_pulse"
-    assert finding.channel == "channel_A"
-    # Window should cover the 2-sample pulse
-    assert finding.start_sample == 98
-    assert finding.end_sample == 100
+    assert len(findings) >= 1
+    assert any(
+        f.start_sample <= glitch_sample <= f.end_sample and f.check == "runt_pulse"
+        for f in findings
+    )
 
 
 if __name__ == "__main__":

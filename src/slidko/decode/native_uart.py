@@ -73,7 +73,7 @@ class NativeUARTBackend(DecodeBackend):
                     rx_signal, idx, bit_period_samples, data_bits
                 )
                 if decoded is not None:
-                    value, end_sample = decoded
+                    value, end_sample, stop_bit_high = decoded
                     events.append(
                         DecodedEvent(
                             kind="uart.byte",
@@ -82,6 +82,7 @@ class NativeUARTBackend(DecodeBackend):
                             data={
                                 "value": value,
                                 "ascii": chr(value) if 32 <= value < 127 else None,
+                                "framing_error": not stop_bit_high,
                             },
                             channel=None,
                         )
@@ -98,12 +99,15 @@ def _decode_uart_byte(
     start_sample: int,
     bit_period_samples: float,
     data_bits: int = 8,
-) -> tuple[int, int] | None:
+) -> tuple[int, int, bool] | None:
     """Decode a single 8N1 UART byte starting at a detected start-bit edge.
 
     Samples each data bit at its midpoint, assembles LSB-first, and checks
-    the stop bit is high. Returns None if the frame runs past the end of the
-    signal or the stop bit isn't high (not a valid frame).
+    the stop bit is high. A framing error (stop bit not idle-high) still
+    yields the byte - it's reported via the third element, not dropped, so
+    Narrate/the smoke detector's incoherence check can see it. Returns None
+    only when the frame runs past the end of the signal (truncated, not a
+    real frame).
 
     Args:
         rx_signal: The RX signal array
@@ -112,7 +116,7 @@ def _decode_uart_byte(
         data_bits: Number of data bits (native backend only supports 8)
 
     Returns:
-        (byte_value, end_sample) or None if the frame is invalid/truncated
+        (byte_value, end_sample, stop_bit_high) or None if truncated
     """
     n = len(rx_signal)
 
@@ -121,8 +125,9 @@ def _decode_uart_byte(
         return start_sample + round(offset)
 
     stop_center = bit_center(data_bits + 1)
-    if stop_center >= n or not rx_signal[stop_center]:
+    if stop_center >= n:
         return None
+    stop_bit_high = bool(rx_signal[stop_center])
 
     value = 0
     for i in range(data_bits):
@@ -131,4 +136,4 @@ def _decode_uart_byte(
             value |= 1 << i
 
     end_sample = start_sample + round(bit_period_samples * (data_bits + 2)) - 1
-    return value, end_sample
+    return value, end_sample, stop_bit_high

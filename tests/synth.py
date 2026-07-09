@@ -710,6 +710,40 @@ def inject_glitches(
     return new_capture, new_ground_truth
 
 
+def inject_chatter(
+    capture: Capture,
+    ground_truth: GroundTruth,
+    channel_name: str,
+    num_toggles: int = 4,
+    seed: int = 0,
+) -> tuple[Capture, GroundTruth]:
+    """Insert a localized burst of `num_toggles` single-sample-spaced level
+    flips (ringing/contact chatter) at a random position - each inter-toggle
+    interval is 1 sample, far below any legal bit period."""
+    rng = np.random.default_rng(seed)
+    channel = capture.channels[channel_name].copy()
+    n = len(channel)
+    if n <= num_toggles + 2:
+        raise ValueError("capture too short for requested chatter burst")
+    start = int(rng.integers(1, n - num_toggles - 1))
+    base_level = bool(channel[start])
+    for i in range(num_toggles):
+        channel[start + i] = base_level if i % 2 == 0 else not base_level
+
+    new_capture = _with_channel(capture, channel_name, channel)
+    new_ground_truth = _with_fault(
+        ground_truth,
+        {
+            "kind": "chatter",
+            "channel": channel_name,
+            "start_sample": start,
+            "num_toggles": num_toggles,
+            "seed": seed,
+        },
+    )
+    return new_capture, new_ground_truth
+
+
 def inject_ws2812_violation(
     capture: Capture,
     ground_truth: GroundTruth,
