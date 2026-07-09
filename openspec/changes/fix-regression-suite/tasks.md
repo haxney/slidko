@@ -109,4 +109,4 @@ Note: `NativeUARTBackend.decode()` itself is still unimplemented (raises `NotImp
 
 - [x] 10.1 `make check` green
 - [x] 10.2 `.venv/bin/python -m pytest -q` reports zero failures across the ENTIRE suite (85 passed) — this is the actual acceptance bar for this change
-- [ ] 10.3 Commit naming the task groups (multiple commits are fine, one per group, per the standing overnight-agent discipline)
+- [x] 10.3 Commit naming the task groups (multiple commits are fine, one per group, per the standing overnight-agent discipline) — groups 1-9.1 committed in `f06d651`; group 9.2/9.3 committed in `d4e4d59`
