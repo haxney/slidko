@@ -1,0 +1,5 @@
+{
+  "i2c": "82dcf1f337cd945824b3eef99880e6c3c426e34c18d0a27642e7faff30fe3de4",
+  "spi": "a2a59fe40284ba0a6ba589b9b1c6b408c19d2285d791daec0a5daf6f9febbc8a",
+  "uart": "a7f4d22a4f13c943d2f9e164e896700efb1cc7bc65235f0e0fa2a09a596dc717"
+}

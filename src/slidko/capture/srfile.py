@@ -78,6 +78,7 @@ def write_sr(capture: Capture, filepath: str, chunk_size: int | None = None) -> 
         packed_bytes = np.packbits(bits, axis=1, bitorder="little").tobytes()
 
     with zipfile.ZipFile(filepath, "w", compression=zipfile.ZIP_STORED) as zf:
+        zf.writestr("version", "2")
         zf.writestr("metadata", metadata_str)
         step = chunk_size if chunk_size else max(len(packed_bytes), 1)
         chunk_index = 1

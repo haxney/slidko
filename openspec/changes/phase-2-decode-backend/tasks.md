@@ -21,21 +21,21 @@
 
 - [x] 3.1 Write failing tests in `tests/decode/test_native_uart.py` using the Phase 1 synthetic UART generator (`tests/synth.py`): decode recovers the generator's ground-truth payload bytes exactly at 9600, 115200, and SBUS (100000-8E2 → but native backend only needs 8N1; assert SBUS is handled by the sigrok path in group 5, native handles 8N1 standard bauds)
 - [x] 3.2 Implement `src/slidko/decode/native_uart.py`: idle-high detection, per-frame start-bit detection, midpoint sampling at `baud`-spaced offsets, LSB-first assembly, stop-bit check; emit `uart.byte` events with correct sample bounds
-- [ ] 3.3 Tests green: decoded bytes equal ground truth; each event's `[start_sample,end_sample]` lies within the frame's true extent
+- [x] 3.3 Tests green: decoded bytes equal ground truth; each event's `[start_sample,end_sample]` lies within the frame's true extent
 
 ## 4. sigrok subprocess backend
 
 - [x] 4.1 Write failing unit tests in `tests/decode/test_sigrok_backend.py` with a **mocked** subprocess: assert the exact argument list built for UART, I²C, and SPI (channel map from hypothesis, pinned `format=hex`, `address_format=shifted`, `--protocol-decoder-samplenum`, `-A <decoder>=<class>`) per design.md
 - [x] 4.2 Write failing parser tests feeding canned sigrok stdout lines (copy the confirmed samples from design.md verbatim: `4368-6036 uart-1: 41`; `780-3300 i2c-1: Address write: 68`; `3660-4020 i2c-1: ACK`; `4020-6900 i2c-1: Data write: AA`) and asserting the produced `DecodedEvent`s
 - [x] 4.3 Implement `src/slidko/decode/sigrok_backend.py`: build args from hypothesis, invoke via the Phase 0 subprocess wrapper (typed exceptions, injected boundary), parse the samplenum annotation lines into events; unit tests green
-- [ ] 4.4 Add a real-sigrok integration test that crafts a `.sr` in a tmp dir and decodes it, `pytest.skip`-ing cleanly when `sigrok-cli` is not installed (mirror Phase 0's `demo_capture` skip pattern)
+- [x] 4.4 Add a real-sigrok integration test that crafts a `.sr` in a tmp dir and decodes it, `pytest.skip`-ing cleanly when `sigrok-cli` is not installed (mirror Phase 0's `demo_capture` skip pattern)
 
 ## 5. Zero-config end-to-end (Measure → Decode)
 
 - [x] 5.1 Write failing test: raw synthetic UART capture → Measure (Phase 1 classify) → native backend → decoded bytes equal ground truth, zero manual parameters passed
 - [x] 5.2 Write failing test: raw synthetic I²C capture → Measure → sigrok backend (skip if no sigrok) → correct `i2c.address` + `i2c.ack`/`i2c.nak` events vs generator ground truth
 - [x] 5.3 Write failing test: raw synthetic SPI capture → Measure → sigrok backend (skip if no sigrok) → correct `spi.transfer` bytes for the generator's CPOL/CPHA mode
-- [ ] 5.4 Implement any glue needed so Measure's output maps onto `ProtocolHypothesis` without manual configuration; tests green
+- [x] 5.4 Implement any glue needed so Measure's output maps onto `ProtocolHypothesis` without manual configuration; tests green
 
 ## 6. Two-backends-one-suite proof
 
