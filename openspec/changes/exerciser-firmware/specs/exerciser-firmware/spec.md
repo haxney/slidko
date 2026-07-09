@@ -34,6 +34,17 @@ Open-drain bus-master operations (i2c_scan/i2c_read) are permitted on live syste
 - **WHEN** a `ws2812`/`uart_tx` command arrives without the believed-undriven assertion field
 - **THEN** the firmware answers `err` citing the hazard envelope
 
+### Requirement: Self-provisioning pinned SDK
+The firmware build SHALL obtain its pinned pico-sdk automatically, without a
+manual pre-install: an idempotent clone of the pinned tag into a gitignored,
+repo-relative path (with the tinyusb submodule initialised), skipped when
+already present, and the location passed to CMake explicitly via
+`-DPICO_SDK_PATH`. The vendored SDK and build tree SHALL never be committed.
+
+#### Scenario: Missing SDK is provisioned, present SDK is reused
+- **WHEN** the build runs with no SDK on disk, then runs a second time with the SDK already cloned
+- **THEN** the first run clones the pinned tag into the gitignored vendor path and the second run reuses it without re-cloning, and neither the SDK nor the build tree appears as an untracked file to commit
+
 ### Requirement: Headless CI build
 The firmware SHALL build headless on Linux CI with a pinned pico-sdk (open toolchain only); compile success is the automated gate, hardware validation is explicitly a human step.
 

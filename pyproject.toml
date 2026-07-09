@@ -5,7 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "slidko"
 version = "0.0.1"
+description = "AI-assisted hardware integration debugging tool"
+readme = "README.md"
 requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "numpy",
     "scipy",
@@ -13,13 +20,20 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "ruff",
+    "pytest==9.1.1",
+    "ruff==0.15.20",
+    "mypy==1.20.2",
+    "pre-commit==4.6.0",
+    "hypothesis==6.156.1",
 ]
 
 [tool.ruff]
 line-length = 88
+target-version = "py311"
 
+# Rule set is frozen (dev-tooling-gate): a new rule is only added as its own
+# reviewed commit that also reformats/re-flags existing code, never as a
+# drive-by in a feature change.
 [tool.ruff.lint]
 extend-select = [
     "I",   # isort
@@ -41,12 +55,14 @@ extend-select = [
     "SIM", # similarity
     "TID", # tidy imports
     "TCH", # type check
+    "N",   # pep8-naming
 ]
 extend-ignore = [
     "PLR", # design related
 ]
 fixable = ["ALL"]
 unfixable = []
+preview = true
 
 [tool.ruff.format]
 quote-style = "double"
@@ -58,3 +74,28 @@ python_files = ["tests/*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 testpaths = ["tests"]
+
+[tool.mypy]
+# No explicit python_version pin: infer from the running interpreter. Pinning
+# to the 3.11 floor breaks on numpy's bundled stubs, which use 3.12+ syntax
+# not parseable under a 3.11 target.
+mypy_path = "src"
+explicit_package_bases = true
+files = ["src", "tests"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_optional = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = ["scipy", "scipy.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
