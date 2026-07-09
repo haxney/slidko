@@ -1,61 +1,78 @@
-"""Tests for interval analysis functions in measure/intervals.py."""
+"""Tests for interval/autocorrelation primitives in measure/intervals.py."""
 
 import numpy as np
 import pytest
 
 from slidko.measure.intervals import (
-    compute_autocorrelation,
     compute_interval_histogram,
-    detect_square_wave_frequency,
-    estimate_period_from_intervals,
+    dominant_interval,
+    estimate_dominant_period,
+    periodicity_strength,
 )
+from tests.synth import SimpleI2CGenerator, expand_segments
 
 
-def test_compute_interval_histogram():
-    """Test computation of interval histogram."""
-    # Simple case - edges at 0, 10, 20, 30 (intervals of 10)
-    edges = [0, 10, 20, 30]
+def _square_wave(half_period: int, cycles: int) -> np.ndarray:
+    return np.tile(np.array([True] * half_period + [False] * half_period), cycles)
+
+
+def test_compute_interval_histogram_single_cluster():
+    half = 15
+    wave = _square_wave(half, cycles=30)
+    edges = [int(i) for i in np.flatnonzero(np.diff(wave.astype(int)) != 0) + 1]
+
     bin_edges, counts = compute_interval_histogram(edges)
+    assert len(counts) == 1  # every interval is the half-period: one bin
+    assert bin_edges[0] == half
 
-    assert len(bin_edges) == len(counts)
-    assert len(counts) > 0
-    # Should have one interval of 10 with count 3 (4 edges -> 3 intervals)
-
-
-def test_estimate_period_from_intervals():
-    """Test period estimation from intervals."""
-    # Regular interval case - edges at 0, 10, 20, 30 (period = 10)
-    edges = [0, 10, 20, 30]
-    period = estimate_period_from_intervals(edges)
-
-    assert period == pytest.approx(10.0)
-
-    # Edge case - too few edges
-    edges = [0, 10]
-    period = estimate_period_from_intervals(edges)
-
-    assert period is None
+    value, confidence = dominant_interval(edges)
+    assert value == pytest.approx(half, abs=1)
+    assert confidence == pytest.approx(1.0)
 
 
-def test_detect_square_wave_frequency():
-    """Test square wave frequency detection."""
-    # Simulate square wave at sample rate of 24MHz with 100 samples period
-    edges = [0, 100, 200, 300, 400]
-    freq = detect_square_wave_frequency(edges, sample_rate_hz=24_000_000)
+def test_estimate_dominant_period_known_period_recovery():
+    half = 15
+    wave = _square_wave(half, cycles=30)
 
-    # Should be 24MHz / 100 samples = 240kHz
-    assert freq == pytest.approx(240000.0)
+    period, confidence = estimate_dominant_period(wave)
 
-
-def test_compute_autocorrelation():
-    """Test autocorrelation computation."""
-    edges = [0, 10, 20, 30, 40]
-    autocorr = compute_autocorrelation(edges)
-
-    # Should return array with some values
-    assert isinstance(autocorr, np.ndarray)
-    assert len(autocorr) > 0
+    assert period == 2 * half
+    assert confidence >= 0.9
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+def test_estimate_dominant_period_confidence_degrades_under_jitter():
+    half = 15
+    cycles = 30
+    clean = _square_wave(half, cycles)
+    clean_period, clean_confidence = estimate_dominant_period(clean)
+    assert clean_confidence >= 0.9
+
+    rng = np.random.default_rng(0)
+    segments = []
+    for _ in range(cycles):
+        h_high = max(1, half + int(rng.integers(-4, 5)))
+        h_low = max(1, half + int(rng.integers(-4, 5)))
+        segments.append((True, h_high))
+        segments.append((False, h_low))
+    jittered = expand_segments(segments)
+
+    jittered_period, jittered_confidence = estimate_dominant_period(jittered)
+
+    # Never confidently wrong: either the period survives, or confidence fell.
+    if abs(jittered_period - clean_period) > 2:
+        assert jittered_confidence < 0.5
+    else:
+        assert jittered_confidence < clean_confidence
+
+
+def test_periodicity_strength_separates_scl_from_sda():
+    capture, _ = SimpleI2CGenerator(
+        address=0x42, payload=[0xDE, 0xAD, 0xBE, 0xEF]
+    ).generate()
+    scl = capture.channels["scl"]
+    sda = capture.channels["sda"]
+
+    scl_strength = periodicity_strength(scl)
+    sda_strength = periodicity_strength(sda)
+
+    assert scl_strength > sda_strength

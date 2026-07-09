@@ -44,6 +44,57 @@ def inter_edge_intervals(edges: list[tuple[int, bool]]) -> np.ndarray:
     return np.diff(indices)
 
 
+def active_window(channels: list[np.ndarray]) -> tuple[int, int]:
+    """[start, end) sample range spanning the first to last edge across all
+    given channels - the region where anything happens, so periodicity
+    comparisons aren't diluted by idle padding around a short burst in an
+    otherwise much longer simultaneous capture."""
+    first: int | None = None
+    last: int | None = None
+    for channel in channels:
+        idxs = [idx for idx, _ in extract_edges(channel)]
+        if not idxs:
+            continue
+        channel_first, channel_last = min(idxs), max(idxs)
+        first = channel_first if first is None else min(first, channel_first)
+        last = channel_last if last is None else max(last, channel_last)
+    if first is None or last is None:
+        return 0, len(channels[0]) if channels else 0
+    return first, last + 1
+
+
+def high_pulse_durations_ns(channel: np.ndarray, samplerate_hz: int) -> list[float]:
+    """Duration in nanoseconds of every high pulse (rising edge to the next
+    falling edge), used by fixed-timing signature-match discriminators
+    (WS2812, DShot, PWM)."""
+    return [high_ns for high_ns, _period_ns in pulse_cells_ns(channel, samplerate_hz)]
+
+
+def pulse_cells_ns(
+    channel: np.ndarray, samplerate_hz: int
+) -> list[tuple[float, float]]:
+    """(high_ns, period_ns) for every rising-edge-to-next-rising-edge cell.
+    Checking both lets a fixed-timing discriminator (DShot) reject a plain
+    constant-duty square wave whose high time alone happens to land in a
+    spec window but whose overall bit period doesn't match at all."""
+    sample_ns = 1e9 / samplerate_hz
+    edges = extract_edges(channel)
+    rising_idxs = [idx for idx, rising in edges if rising]
+    n = len(channel)
+    cells: list[tuple[float, float]] = []
+    for i, start in enumerate(rising_idxs):
+        end = start
+        while end < n and channel[end]:
+            end += 1
+        high_ns = (end - start) * sample_ns
+        if i + 1 < len(rising_idxs):
+            period_ns = (rising_idxs[i + 1] - start) * sample_ns
+        else:
+            period_ns = float("nan")
+        cells.append((high_ns, period_ns))
+    return cells
+
+
 def same_polarity_intervals(edges: list[tuple[int, bool]]) -> np.ndarray:
     """Sample-index deltas between consecutive edges of the same polarity
     (e.g. rising-to-rising), i.e. the full period between repeats of a level."""
