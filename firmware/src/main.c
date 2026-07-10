@@ -5,9 +5,9 @@
 // stdio through TinyUSB CDC already) and lower-risk to get right without a
 // toolchain in the loop to check it against.
 //
-// Compile-verified only in this session (no arm-none-eabi-gcc available).
-// Known v1 simplifications, to revisit once this can be verified on
-// hardware:
+// Compile-verified for both pico and pico2 targets; not yet validated on
+// real silicon. Known v1 simplifications, to revisit once this can be
+// verified on hardware:
 //   - The hand-rolled JSON parser (protocol/parser.c) only extracts scalar
 //     fields; ws2812's `pattern` array and uart_tx/spi_tx's `payload` are
 //     not general binary arrays (payload is read as a string).
@@ -17,6 +17,7 @@
 //     the tested acceptance in tasks.md group 3) -- richer payloads are a
 //     followup, not required by this change's acceptance criteria.
 
+#include "hardware/clocks.h"
 #include "pico/stdlib.h"
 
 #include <stdio.h>

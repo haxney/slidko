@@ -1,7 +1,7 @@
 #include "e9_detect.h"
 
 #if PICO_RP2350
-#include "pico/platform.h"
+#include "pico.h" // pico/platform.h errors if not included via pico.h
 #endif
 
 bool hw_detect_e9_affected(silicon_stepping_t *out_stepping) {
