@@ -1,123 +1,131 @@
-#include <stdio.h>
+// Native (host) tests for the JSON-lines parser and the id-echo/ok|err
+// dispatch contract. No pico-sdk headers, no hardware: protocol/ is pure C
+// over plain structs (see design.md "Directory + build split").
+#include "command.h"
+#include "dispatcher.h"
+#include "parser.h"
+
 #include <assert.h>
-#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
-// Declare the functions that will be implemented in protocol files
-// These are just placeholders for now, to allow compilation of tests
+// -- group 2: parsing --------------------------------------------------
 
-typedef enum {
-    CMD_INFO = 0,
-    CMD_WS2812 = 1,
-    CMD_DSHOT = 2,
-    CMD_PWM = 3,
-    CMD_UART_TX = 4,
-    CMD_I2C_SCAN = 5,
-    CMD_I2C_READ = 6,
-    CMD_SPI_TX = 7,
-    CMD_SYNC = 8,
-    CMD_LOOPBACK = 9
-} command_id_t;
-
-typedef struct {
-    uint32_t id;
-    command_id_t cmd_id;
-} base_command_t;
-
-typedef union {
-    base_command_t base;
-} command_t;
-
-typedef enum {
-    ERR_OK = 0,
-    ERR_PARSE_FAILED = 1,
-    ERR_E9_UNAVAILABLE = 2,
-    ERR_HAZARD_VIOLATION = 3,
-    ERR_INVALID_CMD = 4,
-    ERR_UNSPECIFIED = 5
-} error_code_t;
-
-typedef struct {
-    uint32_t id;
-    uint8_t status;
-    union {
-        char* err_msg;
-    } data;
-} response_t;
-
-// Function prototypes for tests to call (these will exist in implementation)
-int parse_command(const char* input_line, command_t* cmd);
-int serialize_response(const response_t* resp, char* output_buffer, size_t buffer_size);
-
-// Test case 1: parsing a JSON-lines command yields the expected command struct
-void test_parse_info_command() {
-    const char* input = "{\"id\":42,\"cmd\":\"info\"}";
+static void test_parse_info_command(void) {
     command_t cmd;
-
-    int result = parse_command(input, &cmd);
-    // This test will fail initially (as required by task 2.1)
-    assert(result != 0); // Should fail initially
-
-    printf("Test parse_info_command passed (failed as expected)\n");
+    int rc = parse_command("{\"id\":42,\"cmd\":\"info\"}", &cmd);
+    assert(rc == 0);
+    assert(cmd.id == 42);
+    assert(cmd.cmd_id == CMD_INFO);
 }
 
-// Test case 2: parsing DShot command with all fields
-void test_parse_dshot_command() {
-    const char* input = "{\"id\":123,\"cmd\":\"dshot\",\"pin\":5,\"rate\":600,\"value\":1000,\"repeat\":2}";
+static void test_parse_dshot_command(void) {
     command_t cmd;
-
-    int result = parse_command(input, &cmd);
-    // This test will fail initially (as required by task 2.1)
-    assert(result != 0); // Should fail initially
-
-    printf("Test parse_dshot_command passed (failed as expected)\n");
+    int rc = parse_command(
+        "{\"id\":123,\"cmd\":\"dshot\",\"pin\":5,\"rate\":600,\"value\":1000,\"repeat\":2,"
+        "\"assert_undriven\":true}",
+        &cmd);
+    assert(rc == 0);
+    assert(cmd.id == 123);
+    assert(cmd.cmd_id == CMD_DSHOT);
+    assert(cmd.pin == 5);
+    assert(cmd.rate == 600);
+    assert(cmd.value == 1000);
+    assert(cmd.repeat == 2);
+    assert(cmd.assert_undriven == true);
 }
 
-// Test case 3: parsing with malformed JSON should fail
-void test_parse_malformed_json() {
-    const char* input = "{\"id\":42,\"cmd\":\"info\""; // Missing closing brace
+static void test_parse_i2c_read_command(void) {
     command_t cmd;
-
-    int result = parse_command(input, &cmd);
-    // This test will fail initially (as required by task 2.1)
-    assert(result != 0); // Should fail initially
-
-    printf("Test parse_malformed_json passed (failed as expected)\n");
+    int rc = parse_command(
+        "{\"id\":7,\"cmd\":\"i2c_read\",\"sda\":2,\"scl\":3,\"addr\":104,\"reg\":117,\"len\":1}",
+        &cmd);
+    assert(rc == 0);
+    assert(cmd.cmd_id == CMD_I2C_READ);
+    assert(cmd.sda == 2);
+    assert(cmd.scl == 3);
+    assert(cmd.addr == 104);
+    assert(cmd.reg == 117);
+    assert(cmd.len == 1);
 }
 
-// Test case 4: dispatching any valid command with `id:42` produces a response line carrying `id:42` and status `ok` or `err`
-void test_dispatch_command_response() {
-    const char* input = "{\"id\":42,\"cmd\":\"info\"}";
+static void test_parse_sync_readback_mode(void) {
     command_t cmd;
-
-    int parse_result = parse_command(input, &cmd);
-
-    // For now, we're testing the contract - this will fail as the parser isn't implemented
-    assert(parse_result != 0); // Should fail initially since we haven't implemented parsing
-
-    printf("Test dispatch_command_response passed (failed as expected)\n");
+    int rc = parse_command("{\"id\":9,\"cmd\":\"sync\",\"pin\":22,\"mode\":\"input\"}", &cmd);
+    assert(rc == 0);
+    assert(cmd.cmd_id == CMD_SYNC);
+    assert(strcmp(cmd.sync_mode, "input") == 0);
 }
 
-// Test case 5: an unparseable line yields `err` with a reason
-void test_unparseable_line() {
-    const char* input = "this is not valid json";
+static void test_parse_malformed_json(void) {
     command_t cmd;
-
-    int parse_result = parse_command(input, &cmd);
-    // This should fail to parse
-    assert(parse_result != 0); // Should still fail initially
-
-    printf("Test unparseable_line passed (failed as expected)\n");
+    // Missing closing brace.
+    int rc = parse_command("{\"id\":42,\"cmd\":\"info\"", &cmd);
+    assert(rc != 0);
 }
 
-int main() {
-    printf("Running protocol tests (expecting failures)...\n");
+static void test_parse_unparseable_line(void) {
+    command_t cmd;
+    int rc = parse_command("this is not valid json", &cmd);
+    assert(rc != 0);
+}
 
+static void test_parse_unknown_command_name(void) {
+    command_t cmd;
+    int rc = parse_command("{\"id\":1,\"cmd\":\"flash\"}", &cmd);
+    assert(rc != 0);
+}
+
+// -- group 3: id-echo + ok/err response contract ------------------------
+
+static void test_dispatch_valid_command_echoes_id(void) {
+    command_t cmd;
+    assert(parse_command("{\"id\":42,\"cmd\":\"info\"}", &cmd) == 0);
+
+    response_t resp;
+    int rc = dispatch_command(&cmd, /*e9_affected=*/false, &resp);
+    assert(rc == 0);
+    assert(resp.id == 42);
+    assert(resp.status == RESP_OK);
+}
+
+static void test_handle_line_valid_command_serializes_ok(void) {
+    response_t resp;
+    handle_line("{\"id\":42,\"cmd\":\"info\"}", /*e9_affected=*/false, &resp);
+    assert(resp.id == 42);
+    assert(resp.status == RESP_OK);
+
+    char buf[128];
+    assert(serialize_response(&resp, buf, sizeof(buf)) == 0);
+    assert(strstr(buf, "\"id\":42") != NULL);
+    assert(strstr(buf, "\"status\":\"ok\"") != NULL);
+}
+
+static void test_handle_line_unparseable_yields_err_with_reason(void) {
+    response_t resp;
+    handle_line("this is not valid json", /*e9_affected=*/false, &resp);
+    assert(resp.status == RESP_ERR);
+    assert(strlen(resp.err_reason) > 0);
+
+    char buf[128];
+    assert(serialize_response(&resp, buf, sizeof(buf)) == 0);
+    assert(strstr(buf, "\"status\":\"err\"") != NULL);
+    assert(strstr(buf, resp.err_reason) != NULL);
+}
+
+int main(void) {
     test_parse_info_command();
     test_parse_dshot_command();
+    test_parse_i2c_read_command();
+    test_parse_sync_readback_mode();
     test_parse_malformed_json();
-    test_dispatch_command_response();
-    test_unparseable_line();
+    test_parse_unparseable_line();
+    test_parse_unknown_command_name();
 
-    printf("All tests run - expecting failures initially!\n");
+    test_dispatch_valid_command_echoes_id();
+    test_handle_line_valid_command_serializes_ok();
+    test_handle_line_unparseable_yields_err_with_reason();
+
+    printf("test_protocol: all tests passed\n");
     return 0;
 }
