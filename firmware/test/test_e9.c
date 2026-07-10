@@ -1,87 +1,122 @@
-#include <stdio.h>
+// Native (host) tests for the E9 runtime guard policy. The stepping
+// detection itself lives in hw/ (hardware, compile-only); this exercises
+// the pure policy logic with e9_affected supplied directly, per design.md
+// "E9 runtime guard (silicon-aware)".
+#include "command.h"
+#include "dispatcher.h"
+#include "e9_policy.h"
+
 #include <assert.h>
-#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
-// Test E9 runtime guard functions - these are placeholders for now
-
-// Mock the policy state
-typedef enum {
-    E9_AFFECTED_FALSE = 0,
-    E9_AFFECTED_TRUE = 1
-} e9_affected_t;
-
-typedef enum {
-    CMD_INFO = 0,
-    CMD_WS2812 = 1,
-    CMD_DSHOT = 2,
-    CMD_PWM = 3,
-    CMD_UART_TX = 4,
-    CMD_I2C_SCAN = 5,
-    CMD_I2C_READ = 6,
-    CMD_SPI_TX = 7,
-    CMD_SYNC = 8,
-    CMD_LOOPBACK = 9
-} command_id_t;
-
-typedef struct {
-    uint32_t id;
-    command_id_t cmd_id;
-    int e9_affected; // Mocked version for testing
-} mock_command_t;
-
-// Forward declaration - these are to be implemented in the E9 logic layer
-int e9_policy_check(const mock_command_t* cmd);
-int is_input_sensing_command(command_id_t cmd_id);
-
-// Test case 1: input-sensing command with e9_affected=true returns error
-void test_input_sensing_e9_unavailable() {
-    mock_command_t cmd = {42, CMD_SYNC, 1}; // sync is an input sensing command
-
-    int result = e9_policy_check(&cmd);
-    // This should fail initially (function not implemented)
-    assert(result == 0); // Would be expected to return error if input-sensing and E9 affected
-
-    printf("Test input_sensing_e9_unavailable passed\n");
+static command_t make_command(command_id_t cmd_id) {
+    command_t cmd;
+    memset(&cmd, 0, sizeof(cmd));
+    cmd.id = 42;
+    cmd.cmd_id = cmd_id;
+    return cmd;
 }
 
-// Test case 2: output-stimulus commands stay functional with e9_affected=true
-void test_output_stimulus_functional() {
-    mock_command_t cmd = {42, CMD_DSHOT, 1}; // dshot is output stimulus
-
-    int result = e9_policy_check(&cmd);
-    // This should pass (not return error) since it's not input-sensing
-    assert(result == 0); // Would be expected to pass if not E9-affected
-
-    printf("Test output_stimulus_functional passed\n");
+static void test_loopback_is_input_sensing(void) {
+    command_t cmd = make_command(CMD_LOOPBACK);
+    assert(command_is_input_sensing(&cmd) == true);
 }
 
-// Test case 3: info command capability list differs with e9 state
-void test_info_capability_list() {
-    mock_command_t cmd = {42, CMD_INFO, 1};
-
-    int result = e9_policy_check(&cmd);
-    // This should work for info - the policy handles it correctly
-    assert(result == 0);
-
-    printf("Test info_capability_list passed\n");
+static void test_sync_readback_is_input_sensing(void) {
+    command_t cmd = make_command(CMD_SYNC);
+    strcpy(cmd.sync_mode, "input");
+    assert(command_is_input_sensing(&cmd) == true);
 }
 
-// Test case 4: capability list shows differing entries between A2 vs A4
-void test_capability_differences() {
-    // Placeholder test - would assert specific differences in capabilities
-    assert(1 == 1);
-
-    printf("Test capability_differences passed\n");
+static void test_sync_output_marker_is_not_input_sensing(void) {
+    command_t cmd = make_command(CMD_SYNC);
+    strcpy(cmd.sync_mode, "output");
+    assert(command_is_input_sensing(&cmd) == false);
 }
 
-int main() {
-    printf("Running E9 tests...\n");
+static void test_dshot_is_not_input_sensing(void) {
+    command_t cmd = make_command(CMD_DSHOT);
+    assert(command_is_input_sensing(&cmd) == false);
+}
 
-    test_input_sensing_e9_unavailable();
-    test_output_stimulus_functional();
-    test_info_capability_list();
-    test_capability_differences();
+static void test_input_sensing_command_e9_unavailable_when_affected(void) {
+    command_t cmd = make_command(CMD_LOOPBACK);
+    response_t resp;
+    int rc = dispatch_command(&cmd, /*e9_affected=*/true, &resp);
+    assert(rc != 0);
+    assert(resp.status == RESP_ERR);
+    assert(strcmp(resp.err_reason, "e9_unavailable") == 0);
+    assert(resp.id == 42);
+}
 
-    printf("E9 tests completed!\n");
+static void test_output_stimulus_stays_functional_when_e9_affected(void) {
+    command_t cmd = make_command(CMD_DSHOT);
+    cmd.assert_undriven = true; // clear the (unrelated) hazard gate too
+    response_t resp;
+    int rc = dispatch_command(&cmd, /*e9_affected=*/true, &resp);
+    assert(rc == 0);
+    assert(resp.status == RESP_OK);
+}
+
+static void test_input_sensing_command_ok_when_not_affected(void) {
+    command_t cmd = make_command(CMD_LOOPBACK);
+    response_t resp;
+    int rc = dispatch_command(&cmd, /*e9_affected=*/false, &resp);
+    assert(rc == 0);
+    assert(resp.status == RESP_OK);
+}
+
+static bool capability_available(const capability_t *caps, size_t n, const char *name) {
+    for (size_t i = 0; i < n; i++) {
+        if (strcmp(caps[i].name, name) == 0) {
+            return caps[i].available;
+        }
+    }
+    assert(0 && "capability not found");
+    return false;
+}
+
+static void test_capability_list_differs_exactly_on_input_sensing_entries(void) {
+    capability_t a2[16];
+    capability_t a4[16];
+    size_t n_a2 = get_capabilities(/*e9_affected=*/true, a2, 16);
+    size_t n_a4 = get_capabilities(/*e9_affected=*/false, a4, 16);
+    assert(n_a2 == n_a4);
+
+    size_t differences = 0;
+    for (size_t i = 0; i < n_a2; i++) {
+        assert(strcmp(a2[i].name, a4[i].name) == 0);
+        if (a2[i].available != a4[i].available) {
+            differences++;
+            // Every difference must be an input-sensing entry that's
+            // unavailable on A2 (e9_affected) and available on A4.
+            assert(a2[i].available == false);
+            assert(a4[i].available == true);
+        }
+    }
+    assert(differences == 2); // sync_readback, loopback
+    assert(capability_available(a2, n_a2, "sync_readback") == false);
+    assert(capability_available(a2, n_a2, "loopback") == false);
+    assert(capability_available(a4, n_a4, "sync_readback") == true);
+    assert(capability_available(a4, n_a4, "loopback") == true);
+    // Output-stimulus entries are untouched by E9 posture.
+    assert(capability_available(a2, n_a2, "dshot") == true);
+    assert(capability_available(a2, n_a2, "sync_stimulus") == true);
+}
+
+int main(void) {
+    test_loopback_is_input_sensing();
+    test_sync_readback_is_input_sensing();
+    test_sync_output_marker_is_not_input_sensing();
+    test_dshot_is_not_input_sensing();
+
+    test_input_sensing_command_e9_unavailable_when_affected();
+    test_output_stimulus_stays_functional_when_e9_affected();
+    test_input_sensing_command_ok_when_not_affected();
+
+    test_capability_list_differs_exactly_on_input_sensing_entries();
+
+    printf("test_e9: all tests passed\n");
     return 0;
 }
