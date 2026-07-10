@@ -1,25 +1,28 @@
+# Standalone HOST-native project: builds firmware/src/protocol/ with the
+# host `cc`, no pico-sdk, no ARM toolchain. protocol/ includes no SDK
+# headers by design (see design.md "Directory + build split"), so this is
+# the whole point of the split -- run with:
+#   cmake -S firmware/test -B firmware/test/build
+#   cmake --build firmware/test/build
+#   ctest --test-dir firmware/test/build --output-on-failure
 cmake_minimum_required(VERSION 3.13)
+project(exerciser-firmware-tests C)
 
-# Add a native test executable using host compiler
-add_executable(test_protocol
-    test_protocol.c
-    ../src/protocol/*.c
-)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Link only protocol layer (no SDK headers)
-target_include_directories(test_protocol PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/protocol
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src
-)
+enable_testing()
 
-# Set the C standard to 11 for compatibility
-set_target_properties(test_protocol PROPERTIES
-    C_STANDARD 11
-)
+file(GLOB PROTOCOL_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/../src/protocol/*.c)
 
-# This target can be built and run with host compiler from the CLI:
-# cmake -S test -B test/build
-# cmake --build test/build
-target_compile_definitions(test_protocol PRIVATE
-    TEST_MODE=1
-)
+function(add_protocol_test name)
+    add_executable(${name} ${name}.c ${PROTOCOL_SOURCES})
+    target_include_directories(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src/protocol)
+    target_compile_options(${name} PRIVATE -Wall -Wextra -Werror)
+    add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+add_protocol_test(test_protocol)
+add_protocol_test(test_timing)
+add_protocol_test(test_e9)
+add_protocol_test(test_hazard)
