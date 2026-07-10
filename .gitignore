@@ -14,7 +14,11 @@ __pycache__/
 .ruff_cache/
 /logs/
 
-# Firmware: build tree + runner-provisioned pico-sdk (regenerable; the SDK is
-# large and is not our source — never commit it).
-/firmware/build/
+# Firmware: build tree(s) + runner-provisioned pico-sdk (regenerable; the SDK
+# is large and is not our source — never commit it). Board builds use
+# separate directories (build-pico, build-pico2) so both can coexist without
+# reconfiguring; `/firmware/build*/` covers all of them plus the plain
+# `firmware/build/` used for a single-board local run.
+/firmware/build*/
 /firmware/vendor/
+/firmware/test/build/
