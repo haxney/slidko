@@ -1,0 +1,63 @@
+;
+; DShot (Betaflight-style) PIO transmit program.
+;
+; CONFIDENCE: MODERATE, NOT verified on hardware or by a real toolchain in
+; this session (no arm-none-eabi-gcc / pioasm available). Structurally
+; adapted-by-analogy from the pico-sdk's own vendored, known-good
+; src/rp2_common/pico_status_led/ws2812.pio (same side-set variable-high-
+; time NRZ shape: drive high, conditionally extend the high phase per the
+; shifted-out bit, then drive low for the remainder). Human/CI review on
+; real silicon required before trusting this program.
+;
+; Per docs/EXERCISER.md, DShot bit timing keeps a CONSTANT ratio across all
+; three rates (T1H is always exactly 2x T0H; low time is the bit-period
+; remainder), so one PIO program serves DShot150/300/600 -- only the state
+; machine clock divider changes (see dshot_program_init's `bitrate_hz`),
+; exactly mirroring how ws2812_program_init is parameterized by `freq`:
+;   T0H/period ~= 0.375, T1H/period ~= 0.75  =>  T1:T2:T3 = 3:3:2 (8 cycles/bit)
+.pio_version 0
+
+.program dshot
+.side_set 1
+
+.define public T1 3
+.define public T2 3
+.define public T3 2
+
+.lang_opt python sideset_init = pico.PIO.OUT_HIGH
+.lang_opt python out_init     = pico.PIO.OUT_HIGH
+.lang_opt python out_shiftdir = 1
+
+.wrap_target
+bitloop:
+    out x, 1       side 0 [T3 - 1] ; Side-set still takes place when instruction stalls
+    jmp !x do_zero side 1 [T1 - 1] ; Branch on the bit we shifted out. Positive pulse
+do_one:
+    jmp  bitloop   side 1 [T2 - 1] ; Continue driving high, for a long pulse (bit=1, T1H)
+do_zero:
+    nop            side 0 [T2 - 1] ; Or drive low, for a short pulse (bit=0, T0H)
+.wrap
+
+% c-sdk {
+#include "hardware/clocks.h"
+
+// `bitrate_hz` is the DShot bit rate in Hz (e.g. 600000 for DShot600, i.e.
+// `rate * 1000` where `rate` is the 150/300/600 EXERCISER.md command field).
+static inline void dshot_program_init(PIO pio, uint sm, uint offset, uint pin,
+                                       float bitrate_hz) {
+    pio_gpio_init(pio, pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+
+    pio_sm_config c = dshot_program_get_default_config(offset);
+    sm_config_set_sideset_pins(&c, pin);
+    sm_config_set_out_shift(&c, false, true, 16); // MSB-first, 16-bit DShot frame
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+
+    int cycles_per_bit = dshot_T1 + dshot_T2 + dshot_T3;
+    float div = clock_get_hz(clk_sys) / (bitrate_hz * cycles_per_bit);
+    sm_config_set_clkdiv(&c, div);
+
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
