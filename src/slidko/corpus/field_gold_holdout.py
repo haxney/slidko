@@ -1,66 +1,51 @@
 """Field-gold holdout enforcement.
 
-This module implements a guard that scans source files for references to
-field-gold/ outside of an allowlist, failing the build if any are found.
+`corpus/field-gold/` is held out and never tuned against (docs/CORPUS.md:
+"the exam, not the homework"). This guard scans `.py` files under `src/`
+and `tests/` for the literal held-out directory name outside an explicit
+allowlist, so a tuning/eval fixture that references it fails the build
+instead of quietly corrupting the holdout (design.md "Field-gold holdout
+enforcement").
 """
 
-import os
+from pathlib import Path
 
-# Allowlist of files that are permitted to reference field-gold/
-ALLOWLIST = [
-    "corpus/paths.py",  # The loader itself
-    "tests/corpus/test_field_gold_holdout.py",  # This guard test
-]
+HELD_OUT_DIR_NAME = "field-gold"
+
+# Files permitted to reference the held-out directory name: the loader
+# (corpus/paths.py) and its own test (which asserts the loader's literal
+# return value, not a tuning/eval fixture), this guard module itself (its
+# own docstring/constant above necessarily contain the literal), and the
+# guard's test.
+ALLOWLIST = frozenset({
+    "src/slidko/corpus/paths.py",
+    "tests/corpus/test_paths.py",
+    "src/slidko/corpus/field_gold_holdout.py",
+    "tests/corpus/test_field_gold_holdout.py",
+})
 
 
-def scan_for_field_gold_references() -> list[str]:
-    """Scan Python files for literal references to 'field-gold' outside the allowlist.
+def scan_for_field_gold_references(root: Path) -> list[str]:
+    """Scan `.py` files under `root/src` and `root/tests` for the literal
+    held-out directory name outside ALLOWLIST.
 
-    Returns:
-        List of file paths that contain forbidden references
+    Returns the offending files' paths, relative to `root` (posix-style),
+    sorted. Empty means clean.
     """
-    forbidden_files = []
-
-    # Get all .py files in src/ and tests/ directories
-    source_dirs = ["src", "tests"]
-
-    for source_dir in source_dirs:
-        if not os.path.exists(source_dir):
+    forbidden: list[str] = []
+    for source_dir in ("src", "tests"):
+        base = root / source_dir
+        if not base.exists():
             continue
-
-        for root, _, files in os.walk(source_dir):
-            for filename in files:
-                if filename.endswith(".py"):
-                    filepath = os.path.join(root, filename)
-
-                    # Skip allowlisted files
-                    relative_path = os.path.relpath(filepath)
-                    if relative_path in ALLOWLIST:
-                        continue
-
-                    # Check if the file contains "field-gold"
-                    with open(filepath, encoding="utf-8") as f:
-                        content = f.read()
-
-                        # Look for literal "field-gold" references
-                        if r"field-gold" in content:
-                            forbidden_files.append(relative_path)
-
-    return forbidden_files
+        for path in base.rglob("*.py"):
+            rel = path.relative_to(root).as_posix()
+            if rel in ALLOWLIST:
+                continue
+            if HELD_OUT_DIR_NAME in path.read_text(encoding="utf-8"):
+                forbidden.append(rel)
+    return sorted(forbidden)
 
 
-def check_field_gold_references() -> bool:
-    """Check that no unauthorized references to field-gold exist.
-
-    Returns:
-        True if all checks pass, False if forbidden references found
-    """
-    forbidden_files = scan_for_field_gold_references()
-
-    if forbidden_files:
-        print("ERROR: Found forbidden references to 'field-gold' in:")
-        for filepath in forbidden_files:
-            print(f"  {filepath}")
-        return False
-
-    return True
+def check_field_gold_references(root: Path) -> bool:
+    """True if no unauthorized references to the held-out directory exist."""
+    return not scan_for_field_gold_references(root)
