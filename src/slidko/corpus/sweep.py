@@ -1,49 +1,56 @@
 """Sweep-cell runner.
 
-This module reads a cell.json definition and sequences entries along an axis.
+Reads a `cell.json` (`name, axis, fixture, fix_arms, values`) and sequences
+one entry per axis value through `capture_cli.capture_entry`, stamping each
+entry's `sweep_cell.axis`/`.value` so downstream evals can extract
+degradation curves by grouping on `(cell, axis)` (design.md "Sweep-cell
+runner").
 """
 
+from collections.abc import Callable
+from functools import partial
+from pathlib import Path
 from typing import Any
 
+from slidko.corpus.capture_cli import capture_entry
 
-def run_sweep(cell_name: str, values: list[float]) -> list[dict[str, Any]]:
-    """Run sweep for specified values along the cell's axis.
 
-    Args:
-        cell_name: Name of the sweep cell to run
-        values: List of values to sweep through
+def run_sweep(
+    cell_config: dict[str, Any],
+    sidecar_fields: dict[str, Any],
+    instrument_runner: Callable[[float], bytes],
+    verdict_provider: Callable[[float], dict[str, Any] | None],
+) -> list[tuple[Path, Path]]:
+    """Run one entry per value in `cell_config["values"]`.
 
-    Returns:
-        List of sidecar dictionaries for each entry in the sweep
+    `cell_config` is a parsed `cell.json`: `{name, axis, fixture, fix_arms,
+    values}`. `sidecar_fields` supplies every sidecar field besides `id`/
+    `capture_file`/`receiver_verdict`/`sweep_cell`, which this function
+    fills in per entry. `instrument_runner`/`verdict_provider` are called
+    once per value (the value itself is passed through, e.g. to select a
+    fixture length) -- tests inject mocks, no hardware.
+
+    Returns the `(sr_path, json_path)` pairs written, one per value, in
+    `cell_config["values"]` order.
     """
-    # This is a placeholder implementation - in reality this would:
-    # 1. Read the cell.json to get axis information
-    # 2. For each value, run capture
-    # 3. Create sidecars with appropriate sweep_cell data
-    # 4. Return the set of entries
+    cell_name = cell_config["name"]
+    axis = cell_config["axis"]
+    values = cell_config["values"]
 
-    entries = []
-
-    # For demonstration purposes, we'll just return some mock data
-    for i, value in enumerate(values):
-        entry = {
-            "id": f"{cell_name}/entry-{i:04d}",
-            "capture_file": f"entry-{i:04d}.sr",
-            "sweep_cell": {
-                "name": cell_name,
-                "axis": "length_m",  # This would come from the cell.json
-                "value": value,
-            },
+    written: list[tuple[Path, Path]] = []
+    for index, value in enumerate(values):
+        entry_id = f"entry-{index:04d}"
+        fields = {
+            **sidecar_fields,
+            "sweep_cell": {"name": cell_name, "axis": axis, "value": value},
         }
-        entries.append(entry)
+        sr_path, json_path = capture_entry(
+            cell=cell_name,
+            entry_id=entry_id,
+            sidecar_fields=fields,
+            instrument_runner=partial(instrument_runner, value),
+            verdict_provider=partial(verdict_provider, value),
+        )
+        written.append((sr_path, json_path))
 
-    return entries
-
-
-def main() -> None:
-    """Main sweep entry point."""
-    print("Sweep runner not fully implemented in this phase")
-
-
-if __name__ == "__main__":
-    main()
+    return written
