@@ -45,7 +45,9 @@ track, not itemized there).
   change (typed `oneof` envelope, `bytes` payloads, `ErrorReason` enum, fixed
   2-byte LE length prefix, no application-layer CRC over USB) — but the device
   codec is a **no-std Rust protobuf library** (candidates: `femtopb`,
-  `micropb`, or `prost`+`heapless` — see design.md) instead of nanopb(C).
+  `micropb`, or `prost`+`heapless` — see design.md; this choice also carries a
+  future-build-system cost recorded in `build-system-evaluation` design.md D6,
+  see Impact) instead of nanopb(C).
 - E9 A2/A4 stepping detection + silicon-aware self-limiting input policy,
   clock-parameterized timing (RP2040 dev @133 MHz ↔ RP2350 @150 MHz), and the
   full hazard envelope are **carried forward unchanged in behavior**, only
@@ -88,5 +90,16 @@ track, not itemized there).
 - **Supersedes** `exerciser-protobuf-wire`; archive it as superseded.
 - **Host side:** the greenfield Python host codec still generates from the same
   `.proto` — unaffected by the firmware language; only the device codec swaps.
+- **Build-system coupling (codec choice → future Bazel cost):** the no-std codec
+  decision has a downstream build-orchestration cost recorded in the
+  `build-system-evaluation` change (design.md D6). `prost`+`heapless` gets a
+  first-class Bazel proto rule (`rust_prost_library`) but needs `alloc` on the
+  RP2350A; `micropb`/`femtopb` are alloc-free (better embedded fit) but have no
+  Bazel proto rule, so their codegen becomes a hand-rolled `genrule` in any
+  future Bazel world. This does **not** force the codec here — the current
+  `mise`-based build shells out to whichever generator regardless — but the codec
+  should be chosen in view of it (the open question is whether this firmware
+  accepts `alloc`; if yes, `prost` keeps the cheaper-Bazel-later door open at low
+  cost). No effect on this change's behavior or guardrails.
 - **Hardware validation remains an open acceptance gate** that cannot be closed
   until the author is back at the bench (true for the C version equally).
