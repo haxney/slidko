@@ -1,52 +1,89 @@
 """One-motion labeled capture CLI.
 
-This module implements the corpus capture CLI that runs the instrument,
-prompts for the contemporaneous receiver verdict, and writes both .sr + sidecar
-in one motion.
+Runs the instrument, prompts for the contemporaneous receiver verdict (the
+gold label -- REQUIRED, refuses to write without it), and writes the raw
+capture + sidecar in one motion so skipping the verdict is harder than
+recording it (docs/CORPUS.md, design.md "One-motion capture CLI").
 """
 
+import json
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
+from slidko.corpus.paths import entry_paths
+from slidko.corpus.sidecar import Sidecar
 
-def run_capture_with_verdict(
-    instrument_runner: Callable[
-        [str], str
-    ],  # function that runs instrument and returns .sr path
-    verdict_provider: Callable[
-        [], dict[str, Any]
-    ],  # function that prompts for verdict and returns dict
-) -> bool:
-    """Run capture with a specified verifier. This is the core of the CLI logic.
 
-    Args:
-        instrument_runner: Function that captures and returns the path to .sr file
-        verdict_provider: Function that prompts user for verdict returns dictionary
+class VerdictRequiredError(Exception):
+    """Raised when no receiver verdict is supplied; nothing is written."""
 
-    Returns:
-        True if successful, False otherwise
+
+def capture_entry(
+    cell: str,
+    entry_id: str,
+    sidecar_fields: dict[str, Any],
+    instrument_runner: Callable[[], bytes],
+    verdict_provider: Callable[[], dict[str, Any] | None],
+) -> tuple[Path, Path]:
+    """Capture one entry: require a verdict, run the instrument, validate,
+    then write `entry_paths(cell, entry_id)` cross-referenced by `id`.
+
+    `sidecar_fields` supplies every sidecar field except `id`,
+    `capture_file`, and `receiver_verdict`, which this function fills in.
+    `instrument_runner`/`verdict_provider` are injected (real callers wire
+    them to `slidko.capture.sigrokcli.capture` and an interactive prompt;
+    tests inject mocks -- no hardware, no real stdin).
+
+    Raises `VerdictRequiredError` (no files written) if `verdict_provider()`
+    returns a falsy value -- the verdict prompt cannot be silently skipped.
+    Raises `ValueError` (no files written) if the assembled sidecar fails
+    `Sidecar.validate`.
     """
-    # Capture
-    instrument_runner("capture")
+    verdict = verdict_provider()
+    if not verdict:
+        raise VerdictRequiredError(
+            "receiver_verdict is required; refusing to write an unlabeled entry"
+        )
 
-    # Get receiver verdict
-    verdict_provider()
+    sidecar_json = {
+        **sidecar_fields,
+        "id": f"{cell}/{entry_id}",
+        "capture_file": f"{entry_id}.sr",
+        "receiver_verdict": verdict,
+    }
+    sidecar = Sidecar.from_json(sidecar_json)
+    errors = Sidecar.validate(sidecar)
+    if errors:
+        raise ValueError(f"sidecar failed validation: {errors}")
 
-    # Create a basic sidecar template with minimal info (we'll add more)
-    # In a real implementation, this would be more complete
+    # Instrument runs only after validation passes, so a doomed capture
+    # never touches real hardware/subprocess time.
+    sr_bytes = instrument_runner()
 
-    # Validation happens before writing - we'll validate the sidecar structure
-    # but we don't have access to the full sidecar creation here since there
-    # would be a more complex flow with all the parameters
+    sr_path_str, json_path_str = entry_paths(cell, entry_id)
+    sr_path = Path(sr_path_str)
+    json_path = Path(json_path_str)
+    sr_path.parent.mkdir(parents=True, exist_ok=True)
+    sr_path.write_bytes(sr_bytes)
+    json_path.write_text(json.dumps(sidecar.to_json(), indent=2), encoding="utf-8")
 
-    # For now, let's just return success (real implementation would write files)
-    return True
+    return sr_path, json_path
 
 
-# This is the main function that would be used as CLI entry point
 def main() -> None:
-    """Main CLI entry point - would run actual capture workflow"""
-    print("Capture CLI not fully implemented in this phase")
+    """Console entry point.
+
+    Wiring a real interactive session (cell selection, instrument config,
+    stdin verdict prompt) needs a session-config format design.md doesn't
+    specify yet -- deferred. The tested, load-bearing logic is
+    `capture_entry` above; real callers (or a future CLI) supply the
+    instrument_runner/verdict_provider closures.
+    """
+    raise SystemExit(
+        "corpus capture CLI: interactive session wiring not yet implemented; "
+        "use capture_entry() directly with injected instrument_runner/verdict_provider"
+    )
 
 
 if __name__ == "__main__":
